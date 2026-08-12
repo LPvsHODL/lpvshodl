@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Impermanent Loss Explained — What It Is and How to Calculate It</title>
+<meta name="description" content="A plain-English guide to impermanent loss: what causes it, the exact numbers at 2x, 5x and 10x price moves, why concentrated liquidity makes it sharper, and when fees actually cover it.">
+<link rel="canonical" href="https://lpvshodl.com/impermanent-loss/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LPvsHODL">
+<meta property="og:title" content="Impermanent Loss Explained">
+<meta property="og:description" content="What impermanent loss actually is, the real numbers behind it, and when fees cover it.">
+<meta property="og:url" content="https://lpvshodl.com/impermanent-loss/">
+<meta property="og:image" content="https://lpvshodl.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Impermanent Loss Explained">
+<meta name="twitter:description" content="What impermanent loss actually is, the real numbers behind it, and when fees cover it.">
+<meta name="twitter:image" content="https://lpvshodl.com/og.png">
+<meta name="theme-color" content="#3B2BD0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233B2BD0'/%3E%3Ctext x='16' y='23' font-family='Helvetica,Arial,sans-serif' font-size='18' font-weight='bold' fill='white' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Impermanent Loss Explained",
+  "description": "What impermanent loss is, how it is calculated, and when fees actually cover it.",
+  "author": { "@type": "Organization", "name": "LPvsHODL" },
+  "publisher": { "@type": "Organization", "name": "LPvsHODL" },
+  "datePublished": "2026-08-12",
+  "dateModified": "2026-08-12",
+  "mainEntityOfPage": "https://lpvshodl.com/impermanent-loss/"
+}
+</script>
+
+<style>
+:root{
+  --bg:#F1F3F5; --card:#FFFFFF; --card2:#F6F8FA; --ink:#10141C; --soft:#5F6B7A;
+  --rule:#E1E5EA;
+  --accent:#3B2BD0; --accentSoft:rgba(59,43,208,.09); --accentInk:#FFFFFF;
+  --good:#12764C; --bad:#B3372A; --warn:#8A5A12; --warnSoft:rgba(138,90,18,.10);
+  --shadow:0 1px 2px rgba(16,20,28,.05),0 4px 14px rgba(16,20,28,.05);
+}
+[data-theme="dark"]{
+  --bg:#0B0D13; --card:#151A23; --card2:#1B212C; --ink:#ECEFF4; --soft:#8E99A8;
+  --rule:#252C39;
+  --accent:#7D6DFF; --accentSoft:rgba(125,109,255,.15); --accentInk:#0B0D13;
+  --good:#33B682; --bad:#E8705F; --warn:#D9A14A; --warnSoft:rgba(217,161,74,.13);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  transition:background .2s ease,color .2s ease}
+.wrap{max-width:1160px;margin:0 auto;padding:22px 20px 40px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:17px;letter-spacing:-.02em;
+  text-decoration:none;color:var(--ink)}
+.brand b{color:var(--accent)}
+.topright{display:flex;align-items:center;gap:8px}
+.themebtn{background:transparent;border:1px solid var(--rule);border-radius:99px;padding:6px 13px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--soft);cursor:pointer;display:flex;gap:6px;align-items:center}
+.themebtn:hover{border-color:var(--accent);color:var(--accent)}
+.xlink{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+  border:1px solid var(--rule);border-radius:99px;color:var(--soft);text-decoration:none}
+.xlink:hover{border-color:var(--accent);color:var(--accent)}
+.xlink svg{width:12px;height:12px;fill:currentColor}
+nav.tabs{display:flex;gap:22px;border-bottom:1px solid var(--rule);margin-bottom:26px;overflow-x:auto}
+nav.tabs a{padding:9px 0;font-size:13.5px;color:var(--soft);text-decoration:none;white-space:nowrap;
+  border-bottom:2px solid transparent;margin-bottom:-1px}
+nav.tabs a:hover{color:var(--ink)}
+nav.tabs a[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+article{max-width:760px;margin:0 auto}
+.crumb{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--soft);margin-bottom:14px}
+.crumb a{color:var(--soft);text-decoration:none}
+.crumb a:hover{color:var(--accent)}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(32px,5vw,46px);
+  line-height:1.05;letter-spacing:-.03em;margin:0 0 16px}
+h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:27px;line-height:1.15;
+  letter-spacing:-.02em;margin:42px 0 14px}
+h3{font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:17px;margin:28px 0 8px}
+p{font-size:16px;line-height:1.65;color:var(--soft);margin:0 0 15px}
+p.lede{font-size:19px;line-height:1.55;color:var(--ink);margin-bottom:26px}
+strong{color:var(--ink);font-weight:600}
+ul,ol{margin:0 0 15px;padding-left:20px}
+li{font-size:16px;line-height:1.65;color:var(--soft);margin-bottom:8px}
+a{color:var(--accent)}
+table{width:100%;border-collapse:collapse;margin:6px 0 18px;font-size:15px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule)}
+th{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--soft);font-weight:400;background:var(--card2)}
+td{color:var(--soft)}
+td:first-child{color:var(--ink);font-weight:500}
+td.num{font-family:"IBM Plex Mono",monospace;text-align:right;color:var(--bad)}
+.callout{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:17px 19px;margin:22px 0;
+  box-shadow:var(--shadow)}
+.callout p{margin:0;font-size:15px}
+.callout.warn{background:var(--warnSoft);border-color:transparent}
+.cta{background:var(--accent);color:var(--accentInk);border-radius:14px;padding:24px 26px;margin:34px 0}
+.cta h3{margin:0 0 7px;color:var(--accentInk);font-size:19px;font-family:"Bricolage Grotesque",sans-serif;font-weight:800}
+.cta p{color:var(--accentInk);opacity:.9;margin:0 0 15px;font-size:15px}
+.cta a{display:inline-block;background:var(--accentInk);color:var(--accent);text-decoration:none;
+  font-weight:600;font-size:14px;padding:10px 19px;border-radius:99px}
+footer.site{border-top:1px solid var(--rule);margin-top:52px;padding-top:20px;font-size:12.5px;color:var(--soft)}
+footer.site .cols{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer.site a{color:var(--soft);text-decoration:none}
+footer.site a:hover{color:var(--accent)}
+footer.site .legal{margin:14px 0 0;font-size:11.5px;line-height:1.55;opacity:.85;max-width:900px}
+@media(max-width:640px){h2{font-size:23px}p{font-size:15.5px}p.lede{font-size:17px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <a class="brand" href="/">LP<b>vs</b>HODL</a>
+  <div class="topright">
+    <a class="xlink" href="https://x.com/LPvsHODL" target="_blank" rel="noopener" aria-label="LPvsHODL on X">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <button class="themebtn" id="theme" type="button" aria-label="Toggle dark mode">
+      <span id="themeIcon">&#9689;</span><span id="themeText">Dark</span>
+    </button>
+  </div>
+</div>
+
+<nav class="tabs">
+  <a href="/">Backtest a pool</a>
+  <a href="/impermanent-loss/" aria-current="page">Impermanent loss</a>
+</nav>
+
+<article>
+  <div class="crumb"><a href="/">Home</a> / Impermanent loss</div>
+  <h1>Impermanent loss, explained properly</h1>
+  <p class="lede">It is not a fee. Nothing is deducted from your account. Nobody takes it from you. It is the difference between two outcomes, and it only becomes real when you walk away — which is exactly why so many people discover it too late.</p>
+
+  <h2>The one-paragraph version</h2>
+  <p>You deposit two tokens into a pool. One of them goes up more than the other. The pool automatically sells some of the winner and buys more of the loser, over and over, as the price moves. When you withdraw you hold less of the token that went up and more of the token that did not. <strong>Impermanent loss is the value of that difference</strong> — what you would have had if you had simply held the two tokens, minus what the pool actually hands back.</p>
+
+  <h2>Why a pool does this at all</h2>
+  <p>An automated market maker has no opinion about price. It holds a fixed mathematical relationship between the two token balances and lets traders move along it. When the market price of a token rises, traders buy that token out of the pool until its pool price matches the market. The pool has no choice in the matter — it is the counterparty to every one of those trades, always taking the losing side of the move.</p>
+  <p>That is not a bug. It is the service being sold. Traders get liquidity; the pool gets fees for standing there. The entire question of whether providing liquidity is worthwhile comes down to whether those fees exceed the cost of always being on the wrong side.</p>
+
+  <h2>The actual numbers</h2>
+  <p>For a standard full-range position, the loss depends only on how much the two tokens moved <em>relative to each other</em>. Not on direction, not on volatility along the way — just the ratio between where they started and where they ended.</p>
+
+  <table>
+    <thead><tr><th>Price ratio change</th><th>Impermanent loss</th><th>What that feels like</th></tr></thead>
+    <tbody>
+      <tr><td>1.25&times;</td><td class="num">0.6%</td><td>Barely noticeable</td></tr>
+      <tr><td>1.5&times;</td><td class="num">2.0%</td><td>A few weeks of fees</td></tr>
+      <tr><td>2&times;</td><td class="num">5.7%</td><td>Now it matters</td></tr>
+      <tr><td>3&times;</td><td class="num">13.4%</td><td>Most fee income wiped out</td></tr>
+      <tr><td>4&times;</td><td class="num">20.0%</td><td>Painful</td></tr>
+      <tr><td>5&times;</td><td class="num">25.5%</td><td>A quarter of the position</td></tr>
+      <tr><td>10&times;</td><td class="num">42.5%</td><td>You missed most of the run</td></tr>
+    </tbody>
+  </table>
+
+  <p>Read that last row carefully, because it is the one that catches people. If a token 10&times;s against its pair, you do not lose 42.5% of your money — your position is still worth far more than when you started. What you lost is 42.5% <em>relative to having just held the two tokens</em>. You made money and still badly underperformed doing nothing. That distinction is the entire subject.</p>
+
+  <div class="callout">
+    <p><strong>The maths, if you want it:</strong> for a full-range position, value scales with the square root of the price ratio while holding scales with the arithmetic mean. With <em>r</em> as the ratio change, impermanent loss is <em>2&radic;r / (1 + r) &minus; 1</em>. That is where every number in the table comes from.</p>
+  </div>
+
+  <h2>Why "impermanent" is a misleading word</h2>
+  <p>The name comes from a real property: if prices return exactly to the ratio they had when you deposited, the loss vanishes completely. Nothing is permanently destroyed while you remain in the pool.</p>
+  <p>In practice this offers less comfort than it sounds. Prices return to old ratios when a move was noise. When the market has genuinely repriced one asset against another — a protocol grew, a token launched, a narrative broke — that ratio is not coming back, and waiting for it costs you every day you spend waiting. The loss is impermanent in the way that a paper loss on a stock is impermanent.</p>
+
+  <h2>Concentrated liquidity sharpens both edges</h2>
+  <p>Uniswap v3 introduced ranges, and nearly every major DEX has copied the idea since. Instead of spreading your deposit across every conceivable price, you concentrate it into a band. Inside the band you earn dramatically more fees per dollar deposited. Outside it you earn nothing.</p>
+  <p>The catch is what "outside" means. When price leaves your band, your position does not just stop earning — it has already converted entirely into the token that fell. You are fully exposed to the loser and hold none of the winner. A narrow range is a leveraged bet that price stays put, in both directions.</p>
+  <p>This is why the single most useful figure for a concentrated position is not APR but <strong>the share of days it actually spent in range</strong>. A pool advertising 80% APR that was in range 30% of the time did not pay 80%.</p>
+
+  <h3>Re-centring is not a free fix</h3>
+  <p>The obvious response is to move the range whenever price escapes it. That does keep you earning, and it costs on both sides: gas for every adjustment, and the loss on the token that ran away, which you crystallise at the worst possible moment by selling it to reopen. Chasing a trending market can quietly bleed more than sitting out of range would have.</p>
+
+  <h2>When fees actually win</h2>
+  <p>Providing liquidity beats holding under conditions that are genuinely identifiable in advance:</p>
+  <ul>
+    <li><strong>Correlated pairs.</strong> Two tokens that move together barely change ratio, so there is little loss to cover. Stablecoin pairs and liquid staking pairs are the clearest cases.</li>
+    <li><strong>Range-bound markets.</strong> Sideways chop with heavy volume is close to ideal: fees accumulate while the ratio ends near where it began.</li>
+    <li><strong>Volume relative to liquidity.</strong> Fees are shared out by pool share. A busy pool with modest total liquidity pays each provider far more than a quiet pool holding a fortune.</li>
+    <li><strong>Short horizons in a known regime.</strong> The longer you stay, the more chances the ratio has to move against you.</li>
+  </ul>
+  <p>And it reliably loses when one token strongly outperforms the other. If you have real conviction about a token, holding it outright will usually beat pooling it against something else — that conviction is precisely what the pool will trade away on your behalf.</p>
+
+  <div class="callout warn">
+    <p><strong>The comparison most calculators skip:</strong> pool versus holding both tokens is the flattering version, because it assumes you would have bought a 50/50 basket anyway. Compare against holding the single token that went up, and the picture changes considerably. It is hindsight, and it is still the honest number.</p>
+  </div>
+
+  <h2>Working it out for a real position</h2>
+  <p>Every figure above is a general case. What matters for a decision is what a specific pool did over a specific period with a specific range — fees earned against loss incurred, on real volume and real prices.</p>
+
+  <div class="cta">
+    <h3>Backtest a pool against real history</h3>
+    <p>Paste any pool address from a major DEX. Get fees in each token, impermanent loss, days out of range, and how it compared to simply holding — using actual price and volume data rather than an assumed APR.</p>
+    <a href="/">Run a backtest &rarr;</a>
+  </div>
+
+  <p style="font-size:13.5px;opacity:.8">Nothing here is financial advice. Providing liquidity carries a real risk of loss, including risks this page does not cover, such as smart contract failure and token-specific risk.</p>
+</article>
+
+<footer class="site">
+  <div class="cols">
+    <div>&copy; 2026 LPvsHODL</div>
+    <div><a href="/">Backtest</a> &nbsp; <a href="https://x.com/LPvsHODL" target="_blank" rel="noopener">@LPvsHODL</a> &nbsp; <a href="mailto:hello@lpvshodl.com">Contact</a></div>
+  </div>
+  <p class="legal">This site stores your theme and currency preference in your own browser using local storage. It has no accounts, no login and no server-side database. Nothing on this site is financial, investment or tax advice.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var K='lvh-theme';
+  function get(){try{return localStorage.getItem(K);}catch(e){return null;}}
+  function set(v){try{localStorage.setItem(K,v);}catch(e){}}
+  function apply(t){
+    document.documentElement.setAttribute('data-theme',t);
+    document.getElementById('themeIcon').innerHTML=(t==='dark')?'&#9728;':'&#9689;';
+    document.getElementById('themeText').textContent=(t==='dark')?'Light':'Dark';
+  }
+  var saved=get();
+  apply(saved||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'));
+  document.getElementById('theme').addEventListener('click',function(){
+    var t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    apply(t);set(t);
+  });
+})();
+</script>
+</body>
+</html>
