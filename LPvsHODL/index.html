@@ -257,6 +257,7 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
 .viewtog:hover{border-color:var(--accent);color:var(--accent)}
 [data-view="simple"] #rangeSet,
 [data-view="simple"] #costCard,
+[data-view="simple"] #baseCard,
 [data-view="simple"] #adv,
 [data-view="simple"] #optPanel,
 [data-view="simple"] .pills{display:none}
@@ -318,6 +319,58 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
 
 .aprtag{color:var(--good);font-weight:600}
 
+/* ---- per-token holdings in the simple view ---- */
+[data-view="simple"] .stat .legs{display:flex;margin-top:9px;gap:5px}
+[data-view="simple"] .stat .leg{font-size:12px}
+[data-view="simple"] .stat .leg .usd{font-size:11px}
+[data-view="simple"] .stat .splitwrap{margin-bottom:2px}
+.leg.zero .amt,.leg.zero .usd{color:var(--soft);opacity:.75}
+.leg .zt{font-family:"IBM Plex Sans",sans-serif;font-size:10.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--soft);margin-left:6px}
+
+/* ---- share row ---- */
+.sharerow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.sharebtn{display:inline-flex;align-items:center;gap:7px;background:var(--ink);color:var(--bg);
+  border:0;border-radius:99px;padding:8px 15px;font-family:"IBM Plex Sans",sans-serif;
+  font-weight:600;font-size:12.5px;cursor:pointer}
+.sharebtn:hover{filter:brightness(1.15)}
+.sharebtn svg{width:13px;height:13px;fill:currentColor}
+.copybtn{background:transparent;border:1px solid var(--rule);border-radius:99px;padding:8px 15px;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--soft);cursor:pointer}
+.copybtn:hover{border-color:var(--accent);color:var(--accent)}
+.copybtn.done{border-color:var(--good);color:var(--good)}
+
+/* ---- comparison baselines ---- */
+.bases{border:1px solid var(--rule);border-radius:11px;overflow:hidden;margin-top:4px}
+.bases .brow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:baseline;
+  padding:9px 14px;border-bottom:1px solid var(--rule);font-size:13.5px}
+.bases .brow:last-child{border-bottom:0}
+.bases .brow.hd{background:var(--card2);font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--soft)}
+.bases .brow.me{background:var(--card2);font-weight:600}
+.bases .brow .lab{color:var(--soft);min-width:0}
+.bases .brow.me .lab{color:var(--ink)}
+.bases .brow .val,.bases .brow .dif{font-family:"IBM Plex Mono",monospace;font-weight:500;
+  text-align:right;white-space:nowrap}
+.bases .brow.hd .val,.bases .brow.hd .dif{font-weight:400}
+.bases .sub{display:block;font-size:11.5px;color:var(--soft);font-weight:400;margin-top:2px}
+
+/* ---- rebalancing block ---- */
+.rebal{border-top:1px solid var(--rule);margin-top:14px;padding-top:13px}
+.rebal .toggle{display:flex;align-items:flex-start;gap:9px;cursor:pointer}
+.rebal .toggle input{width:auto;margin:2px 0 0;flex:none}
+.rebal .toggle span{font-size:13px;color:var(--ink);font-weight:600}
+.rebal .body{margin-top:11px}
+.rebal .body[hidden]{display:none}
+
+/* ---- social link in the header + footer ---- */
+.xlink{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+  border:1px solid var(--rule);border-radius:99px;color:var(--soft);text-decoration:none}
+.xlink:hover{border-color:var(--accent);color:var(--accent)}
+.xlink svg{width:12px;height:12px;fill:currentColor}
+footer.site .cols a.x{display:inline-flex;align-items:center;gap:5px}
+footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
+
 </style>
 </head>
 <body>
@@ -327,6 +380,9 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
   <a class="brand" href="/">LP<b>vs</b>HODL</a>
   <div class="topright">
     <select class="mini" id="cur" aria-label="Display currency"></select>
+    <a class="xlink" href="https://x.com/LPvsHODL" target="_blank" rel="noopener" aria-label="LPvsHODL on X" title="Follow LPvsHODL on X">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
     <button class="themebtn" id="theme" type="button" aria-label="Toggle dark mode">
       <span id="themeIcon">&#9689;</span><span id="themeText">Dark</span>
     </button>
@@ -415,6 +471,21 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
         <p class="hint" id="ratioOut"></p>
       </div>
       <div style="margin-top:11px"><button type="button" class="ghost" id="optbtn" disabled>Find the best range</button></div>
+
+      <div class="rebal" id="rebalBlock">
+        <label class="toggle" for="rebal">
+          <input id="rebal" type="checkbox">
+          <span>Re-centre the range when price leaves it</span>
+        </label>
+        <p class="hint" style="margin:7px 0 0 26px">Off by default, which assumes you set the range once and walked away. Switch it on and the backtest closes the position whenever price escapes the band, then reopens it at the same width around the new price.</p>
+        <div class="body" id="rebalBody" hidden>
+          <div class="row">
+            <div class="field" style="margin:0"><label for="rebalCost">Cost per re-centre (USD)</label><input id="rebalCost" type="number" step="any" min="0" value="0"></div>
+            <div class="field" style="margin:0"><label for="rebalWait">Wait days before re-centring</label><input id="rebalWait" type="number" step="1" min="0" max="60" value="0"></div>
+          </div>
+          <p class="hint">Every re-centre is two swaps and a fresh position, so it costs gas and it locks in the loss on whichever token the price ran away from. The wait lets price come back on its own before you pay to chase it.</p>
+        </div>
+      </div>
     </fieldset>
 
     <details class="adv" id="adv">
@@ -430,6 +501,9 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
         <div class="field" style="margin:0"><label for="tvl">TVL (USD)</label><input id="tvl" type="number" step="any" value="0"></div>
         <div class="field" style="margin:0"><label for="fee">Fee %</label><input id="fee" type="number" step="any" value="0.3"></div>
       </div>
+      <div class="field"><label for="drift">Other liquidity joining over the period, %</label>
+        <input id="drift" type="number" step="any" value="0"></div>
+      <p class="hint">Your fees are a share of the pool, so they shrink as other people deposit. Zero holds the pool the size it is today. Put 100 here to model the pool doubling over the window, or a negative number for liquidity leaving. Your own deposit is already diluting the pool in every figure below.</p>
       <div class="field"><label for="gas">Gas, total round trip (USD)</label>
         <input id="gas" type="number" step="any" min="0" value="0"></div>
       <p class="hint">What it would cost to enter, exit and collect fees. Left at zero by default. On Ethereum mainnet a round trip has historically run somewhere around $50&ndash;200 depending on conditions; on Base, Arbitrum or Solana it is usually cents.</p>
@@ -465,6 +539,13 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
       <span class="hnum idle" id="hNum">Awaiting a pool</span>
       <p class="hnote" id="hNote">Paste a pool address above and hit Load.</p>
       <button class="ghost bestbtn" id="restoreBest" type="button" hidden>Show the best range for this period</button>
+      <div class="sharerow" id="shareRow" hidden>
+        <button class="sharebtn" id="shareX" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          Post this result
+        </button>
+        <button class="copybtn" id="copyLink" type="button">Copy link</button>
+      </div>
       <div class="suggest" id="suggest" hidden></div>
     </div>
 
@@ -501,6 +582,13 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
       <div class="note mutbox" id="ilNote">Load a pool to run the backtest.</div>
       <div class="note mutbox" id="rangeNote" hidden></div>
       <div class="note mutbox" id="fxNote" hidden></div>
+    </div>
+
+    <div class="card" id="baseCard" hidden style="margin-top:16px">
+      <h2>The same money, spent five other ways</h2>
+      <p class="hint" style="margin:-4px 0 13px">Every line starts from the same deposit on the same day and ends today. Holding one token outright is the honest comparison most calculators skip &mdash; it is often the one that wins.</p>
+      <div class="bases" id="bases"></div>
+      <div class="note mutbox" id="baseNote" style="margin-top:14px"></div>
     </div>
 
     <div class="card" id="optPanel" hidden>
@@ -584,7 +672,7 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
 <footer class="site">
   <div class="cols">
     <div>&copy; 2026 LPvsHODL</div>
-    <div><a href="/">Backtest</a> &nbsp; <a href="mailto:hello@lpvshodl.com">Contact</a></div>
+    <div><a href="/">Backtest</a> &nbsp; <a class="x" href="https://x.com/LPvsHODL" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@LPvsHODL</a> &nbsp; <a href="mailto:hello@lpvshodl.com">Contact</a></div>
   </div>
   <p class="legal">This site stores your theme, currency and recently viewed pools in your own browser using local storage. It has no accounts, no login and no server-side database, and it does not sell or share personal data. Pool data comes from GeckoTerminal and exchange rates from Frankfurter; those requests are made directly from your browser. Nothing on this site is financial, investment or tax advice — providing liquidity carries real risk of loss.</p>
 </footer>
@@ -991,7 +1079,8 @@ var LVH = (function () {
 "use strict";
 var $=function(i){return document.getElementById(i);};
 var S={series:[],loaded:false,dex:'',chain:'',addr:'',label:'',created:null,
-  unsupported:false,naReason:'',feeKnown:true,modelSure:false,mode:'bounds',best:null,prevRange:null,source:''};
+  unsupported:false,naReason:'',feeKnown:true,modelSure:false,mode:'bounds',best:null,prevRange:null,source:'',
+  pending:null,pendingFiat:0,last:null};
 
 S.depositUSD=10000;
 
@@ -1195,6 +1284,13 @@ function fetchPool(chain,addr){
       : ' Backtesting '+dataAge.toLocaleString('en-US')+' days, from '+LVH.niceDate(first)+'.';
     setStatus(line,'ok');
     if(!S.feeKnown||!S.modelSure)$('adv').open=true;
+    if(S.pending){
+      var p=S.pending;S.pending=null;
+      if(p.d)$('date').value=p.d;
+      if(isFinite(p.lo)&&isFinite(p.up)){setMode('bounds');$('rDown').value=p.lo;$('rUp').value=p.up;}
+      if(p.rb){$('rebal').checked=true;$('rebalBody').hidden=false;}
+      if(p.q>0)S.pendingFiat=p.q;
+    }
     snapDate();
   });
 }
@@ -1239,7 +1335,14 @@ function syncEntry(){
     $('pa1').value=+l.pa.toPrecision(8);$('pb1').value=+l.pb.toPrecision(8);
   }
   S.best=null;
-  LVH.loadFX($('date').value).then(function(){update();if(S.loaded)autoBest();});
+  LVH.loadFX($('date').value).then(function(){
+    if(S.pendingFiat>0){
+      S.depositUSD=S.pendingFiat;
+      $('fiat').value=+(S.pendingFiat*(LVH.fx.now||1)).toFixed(2);
+      S.pendingFiat=0;
+      if(S.mode==='ratio')readDeposit();
+    }
+    update();if(S.loaded)autoBest();});
 }
 
 function syncValues(){
@@ -1268,28 +1371,60 @@ function run(down,up,forceCl){
   if(!(V0>0))return null;
   var r0=pa0/pb0,r1=pa1/pb1;
   var i0=entryIdx(),slice=(S.loaded&&i0>=0)?S.series.slice(i0):[];
+
+  /* Re-centring only means anything for a bounded position, and only in the
+     detail view where the bounds are actually visible to the user. */
+  var reOn=cl&&$('rebal').checked&&view()!=='simple';
+  var reCost=Math.max(0,n('rebalCost')),reWait=Math.max(0,Math.round(n('rebalWait')));
+
+  /* Competing liquidity: the pool the fees are shared with grows (or shrinks)
+     across the window, so the share is walked linearly from 1 to 1+drift. */
+  var drift=n('drift')/100,span=Math.max(1,slice.length-1);
+
   var lo=r0*(1-down/100),hi=r0*(1+up/100),L=0,eA,eB;
   if(cl){L=LVH.v3L(V0/pb0,r0,lo,hi);var en=LVH.v3Amounts(L,r0,lo,hi);eA=en[0];eB=en[1];}
   else{eA=(V0/2)/pa0;eB=(V0/2)/pb0;}
-  var fA=0,fB=0,inDays=0;
-  slice.forEach(function(d){
-    var r=d.pa/d.pb,live=(!cl)||(r>=lo&&r<=hi);
+
+  var fA=0,fB=0,inDays=0,reN=0,reSpend=0,shSum=0,shN=0,dead=false;
+  var cLo=lo,cHi=hi,cL=L,outRun=0;
+  slice.forEach(function(d,i){
+    var r=d.pa/d.pb,live=(!cl)||(r>=cLo&&r<=cHi);
     if(cl&&live)inDays++;
     if(live){
       /* real TVL for that day when the subgraph gave us one, today's TVL otherwise */
-      var t=(d.tvl&&d.tvl>0)?d.tvl:tvl;
+      var base=(d.tvl&&d.tvl>0)?d.tvl:tvl;
+      var t=Math.max(0,base*(1+drift*(i/span)));
       var sh=(t+V0)>0?V0/(t+V0):0;
-      var f=d.vol*fee*sh;fA+=(f/2)/d.pa;fB+=(f/2)/d.pb;}});
+      shSum+=sh;shN++;
+      var f=d.vol*fee*sh;fA+=(f/2)/d.pa;fB+=(f/2)/d.pb;}
+    if(!cl||!reOn||dead)return;
+    if(live){outRun=0;return;}
+    outRun++;
+    if(outRun<=reWait)return;
+    /* Price has stayed outside long enough: sell out at today's prices, pay the
+       cost, and open the same-width band around wherever price now sits. */
+    var am=LVH.v3Amounts(cL,r,cLo,cHi);
+    var val=am[0]*d.pa+am[1]*d.pb;
+    val-=reCost;
+    if(!(val>0)){dead=true;return;}
+    reSpend+=reCost;reN++;outRun=0;
+    cLo=r*(1-down/100);cHi=r*(1+up/100);
+    cL=LVH.v3L(val/d.pb,r,cLo,cHi);
+  });
+
   var pA,pB;
-  if(cl){var am=LVH.v3Amounts(L,r1,lo,hi);pA=am[0];pB=am[1];}
+  if(cl){var am2=LVH.v3Amounts(cL,r1,cLo,cHi);pA=am2[0];pB=am2[1];}
   else{var pv=V0*Math.sqrt((pa1/pa0)*(pb1/pb0));pA=(pv/2)/pa1;pB=(pv/2)/pb1;}
   var feeV=fA*pa1+fB*pb1;
   var apr=(slice.length&&V0>0)?(feeV/V0)*(365/slice.length)*100:0;
-  return {V0:V0,r0:r0,r1:r1,lo:lo,hi:hi,cl:cl,down:down,up:up,apr:apr,
+  return {V0:V0,r0:r0,r1:r1,lo:lo,hi:hi,cLo:cLo,cHi:cHi,cl:cl,down:down,up:up,apr:apr,
     days:slice.length,inDays:inDays,eA:eA,eB:eB,
     pA:pA,pB:pB,posV:pA*pa1+pB*pb1,fA:fA,fB:fB,feeV:feeV,
+    reOn:reOn,reN:reN,reSpend:reSpend,reWait:reWait,reDead:dead,
+    drift:drift,avgShare:shN?(shSum/shN):0,
     hold:eA*pa1+eB*pb1,rebased:V0*((pa1/pa0)+(pb1/pb0))/2,
-    holdA:eA*pa1,holdB:eB*pb1,pa1:pa1,pb1:pb1,
+    allA:(V0/pa0)*pa1,allB:(V0/pb0)*pb1,
+    holdA:eA*pa1,holdB:eB*pb1,pa0:pa0,pb0:pb0,pa1:pa1,pb1:pb1,
     symA:($('symA').value||'A').trim(),symB:($('symB').value||'B').trim()};
 }
 
@@ -1301,12 +1436,17 @@ function bar(idA,idB,va,vb){
   if(la)la.textContent=Math.round(pa)+'%';
   if(lb)lb.textContent=Math.round(100-pa)+'%';
 }
+function leg1(sym,amt,usd,swatch,other){
+  /* A concentrated position that ran out of range holds nothing but one token.
+     That zero is the whole story, so it gets a row of its own rather than
+     disappearing from the card. */
+  var z=!(Math.abs(amt)>0)&&(Math.abs(other)>0);
+  return '<div class="leg'+(z?' zero':'')+'"><span class="s"><i class="sw" style="background:var('+swatch+')"></i>'+
+    esc(sym)+(z?'<span class="zt">all sold</span>':'')+'</span><span><span class="amt">'+
+    tok(amt)+'</span> <span class="usd">'+money(usd)+'</span></span></div>';
+}
 function legs(id,symA,symB,amtA,amtB,usdA,usdB){
-  $(id).innerHTML=
-    '<div class="leg"><span class="s"><i class="sw" style="background:var(--tokA)"></i>'+esc(symA)+
-    '</span><span><span class="amt">'+tok(amtA)+'</span> <span class="usd">'+money(usdA)+'</span></span></div>'+
-    '<div class="leg"><span class="s"><i class="sw" style="background:var(--tokB)"></i>'+esc(symB)+
-    '</span><span><span class="amt">'+tok(amtB)+'</span> <span class="usd">'+money(usdB)+'</span></span></div>';
+  $(id).innerHTML=leg1(symA,amtA,usdA,'--tokA',amtB)+leg1(symB,amtB,usdB,'--tokB',amtA);
 }
 function idle(on){['cardPos','cardFee','cardHold'].forEach(function(id){$(id).classList.toggle('idle',on);});}
 function advSummary(){
@@ -1333,7 +1473,78 @@ function emptyState(){
   $('ilNote').className='note mutbox';$('ilNote').textContent='Load a pool to run the backtest.';
   $('rangeNote').hidden=true;$('fxNote').hidden=true;$('depHint').textContent='';
   $('optbtn').disabled=true;$('optPanel').hidden=true;
+  $('shareRow').hidden=true;$('baseCard').hidden=true;
   advSummary();
+}
+
+function renderBases(m,total,gas){
+  var poolNet=total-gas,rows=[];
+  var sub='';
+  if(m.reOn&&m.reN)sub=m.reN+' re-centre'+(m.reN>1?'s':'')+(m.reSpend>0?', '+money(m.reSpend)+' spent':'');
+  else if(gas>0)sub='after '+money(gas)+' of gas';
+  else sub='tokens left in the pool plus the fees they earned';
+  rows.push({me:true,lab:'This pool',sub:sub,v:poolNet});
+  rows.push({lab:'Hold what you deposited',
+    sub:tok(m.eA)+' '+esc(m.symA)+' + '+tok(m.eB)+' '+esc(m.symB)+', untouched',v:m.hold});
+  if(Math.abs(m.hold-m.rebased)>Math.max(0.01,m.V0*0.0002))
+    rows.push({lab:'Hold half and half',sub:'the same money split evenly across both',v:m.rebased});
+  rows.push({lab:'All in '+esc(m.symA),sub:tok(m.V0/m.pa0)+' '+esc(m.symA)+', bought and held',v:m.allA});
+  rows.push({lab:'All in '+esc(m.symB),sub:tok(m.V0/m.pb0)+' '+esc(m.symB)+', bought and held',v:m.allB});
+  rows.push({lab:'Stayed in cash',sub:'never bought either token',v:m.V0});
+
+  var win=rows[0];
+  rows.forEach(function(r){if(r.v>win.v)win=r;});
+
+  var h='<div class="brow hd"><span class="lab">Where the money went</span>'+
+    '<span class="val">Worth today</span><span class="dif">vs. the pool</span></div>';
+  rows.forEach(function(r){
+    var d=r.v-poolNet;
+    h+='<div class="brow'+(r.me?' me':'')+'"><span class="lab">'+r.lab+
+      '<span class="sub">'+r.sub+'</span></span><span class="val">'+money(r.v)+
+      '</span><span class="dif '+(r.me?'':(d>0?'pos':(d<0?'neg':'')))+'">'+
+      (r.me?'\u2014':signed(d))+'</span></div>';
+  });
+  $('bases').innerHTML=h;
+
+  var nb=$('baseNote');
+  if(win.me){
+    var dv=Date.parse(($('date').value||'')+'T00:00:00Z');
+    nb.className='note';
+    nb.innerHTML='<strong>The pool won.</strong> Nothing else you could have done with this money'+
+      (isFinite(dv)?' on '+LVH.niceDate(new Date(dv)):'')+' would have finished ahead of it \u2014 '+
+      'fees more than paid for what the pool sold on your behalf.';
+  }else{
+    nb.className='note warnbox';
+    nb.innerHTML='<strong>'+win.lab+' would have finished '+money(win.v-poolNet)+' ahead.</strong> '+
+      'That is the comparison worth sitting with: a pool can beat holding both tokens and still lose badly to '+
+      'simply picking the one that went up. Hindsight makes that choice look obvious, and it never was.';
+  }
+  $('baseCard').hidden=false;
+}
+
+function shareURL(){
+  var u=location.origin+location.pathname,q=[];
+  if(S.chain&&S.addr){q.push('c='+encodeURIComponent(S.chain));q.push('a='+encodeURIComponent(S.addr));}
+  if($('date').value)q.push('d='+$('date').value);
+  if(S.depositUSD>0)q.push('q='+Math.round(S.depositUSD));
+  if($('model').value==='cl'&&view()!=='simple'){
+    q.push('lo='+n('rDown'));q.push('up='+n('rUp'));
+    if($('rebal').checked)q.push('rb=1');
+  }
+  return u+(q.length?'?'+q.join('&'):'');
+}
+function shareText(m,net){
+  var pair=m.symA+'/'+m.symB,ch=LVH.chainName(S.chain);
+  var head=(net>=0)
+    ? pair+' on '+ch+' beat holding by '+money(net)+' over '+m.days+' days.'
+    : pair+' on '+ch+' lost to holding by '+money(Math.abs(net))+' over '+m.days+' days.';
+  return head+' Fees: '+money(m.feeV)+(m.cl?' \u00b7 in range '+
+    (m.days?Math.round(m.inDays/m.days*100):0)+'% of the time':'')+'.';
+}
+function wireShare(m,net){
+  S.last={m:m,net:net};
+  $('shareRow').hidden=false;
+  var c=$('copyLink');c.textContent='Copy link';c.className='copybtn';
 }
 
 function update(){
@@ -1391,6 +1602,7 @@ function update(){
     bar('holdBarA','holdBarB',m.holdA,m.holdB);
     $('ilNote').className='note mutbox';$('ilNote').textContent='Only the hold comparison is shown.';
     $('rangeNote').hidden=true;$('fxNote').hidden=true;$('feeFlag').hidden=true;$('aprFlag').hidden=true;
+    $('shareRow').hidden=true;$('baseCard').hidden=true;
     return;
   }
   $('naNote').hidden=true;
@@ -1422,6 +1634,16 @@ function update(){
       (shareOfPool>5?'Above 5% it is better read as \u201cthis pool is small\u201d than as a number to act on.'
                     :'Try a smaller deposit to see what the pool looks like without you moving it.');
   } else $('shareFlag').hidden=true;
+
+  if(m.drift!==0&&view()!=='simple'){
+    $('shareFlag').hidden=false;
+    var dpc=Math.abs(m.drift*100).toFixed(0);
+    $('shareFlag').innerHTML='Fees here assume the rest of the pool '+(m.drift>0?'grew':'shrank')+
+      ' <strong>'+dpc+'%</strong> across the window, so your average cut of it was <strong>'+
+      (m.avgShare*100).toFixed(2)+'%</strong>. '+(m.drift>0
+        ? 'More liquidity means the same trading volume is split more ways \u2014 this is why a pool that looks generous today often is not by the time you have been in it a month.'
+        : 'Less liquidity means a bigger cut of the same volume, though a pool people are leaving is usually one worth asking questions about.');
+  }
 
   var gas=Math.max(0,n('gas'));
   var cost=m.posV-m.hold;              /* tokens lost (or gained) versus holding */
@@ -1482,12 +1704,32 @@ function update(){
   }
 
   $('rangeNote').hidden=false;
-  if(m.cl){
+  if(m.cl&&m.reOn){
+    var pct2=m.days?m.inDays/m.days*100:0;
+    $('rangeNote').className='note'+(m.reDead?' badbox':(m.reN>6?' warnbox':''));
+    if(m.reDead){
+      $('rangeNote').innerHTML='<strong>The position was re-centred until there was nothing left.</strong> '+
+        'At '+money(n('rebalCost'))+' a time, the costs ate the whole deposit before the window ended. '+
+        'Widen the band, add a wait, or lower the cost.';
+    }else if(m.reN===0){
+      $('rangeNote').innerHTML='Price never left your \u2212'+m.down+'% / +'+m.up+
+        '% band'+(m.reWait>0?' for more than '+m.reWait+' day'+(m.reWait>1?'s':'')+' at a stretch':'')+
+        ', so nothing was re-centred. The result is identical to setting the range once and leaving it.';
+    }else{
+      $('rangeNote').innerHTML='Re-centred <strong>'+m.reN+' time'+(m.reN>1?'s':'')+
+        '</strong> over '+m.days+' days'+(m.reSpend>0?', costing <strong>'+money(m.reSpend)+'</strong> in total':'')+
+        '. The band now sits at <strong>'+money(m.cLo*m.pb1)+'</strong> to <strong>'+money(m.cHi*m.pb1)+
+        '</strong> per '+esc(m.symA)+', and the position earned on <strong>'+pct2.toFixed(0)+
+        '%</strong> of days.<br><br>Chasing the price keeps you earning, but every re-centre sells the token that ran away '+
+        'at the worst possible moment. That loss is already inside the numbers above.';
+    }
+  }else if(m.cl){
     var out=m.days-m.inDays,pct=m.days?m.inDays/m.days*100:0;
     $('rangeNote').className='note'+(pct<60?' warnbox':'');
     $('rangeNote').innerHTML='Your position only earns while '+esc(m.symA)+' trades between <strong>'+
       money(m.lo*m.pb1)+'</strong> and <strong>'+money(m.hi*m.pb1)+'</strong>. It was inside that window <strong>'+
       pct.toFixed(0)+'%</strong> of the time'+(out>0?' \u2014 the other '+out+' days it earned nothing.':'.')+
+      (pct<100?'<br><br>Switch on re-centring in the range panel to see what chasing the price would have cost.':'')+
       '<br><br>Real fees would likely be higher than shown. A narrow band earns more per dollar than a wide one, and this doesn\u2019t count that.';
   }else{
     $('rangeNote').className='note mutbox';
@@ -1507,6 +1749,8 @@ function update(){
       money(total)+'</strong> today, versus <strong>'+money(total,LVH.fx.then)+
       '</strong> at the entry-date rate \u2014 that gap is currency, not the pool.';
   }
+  renderBases(m,total,gas);
+  wireShare(m,net);
   renderSuggest(m,net);
 }
 
@@ -1619,8 +1863,26 @@ function setMode(mo){
 ['valA','valB'].forEach(function(id){
   $(id).addEventListener('input',function(){
     syncValues();S.best=null;update();if(S.loaded)autoBest();});});
-['symA','symB','pa0','pb0','pa1','pb1','tvl','gas','rDown','rUp','width'].forEach(function(id){
+['symA','symB','pa0','pb0','pa1','pb1','tvl','gas','rDown','rUp','width','drift','rebalCost','rebalWait'].forEach(function(id){
   $(id).addEventListener('input',function(){S.best=null;update();if(S.loaded)autoBest();});});
+$('rebal').addEventListener('change',function(){
+  $('rebalBody').hidden=!$('rebal').checked;
+  S.best=null;update();if(S.loaded)autoBest();});
+
+$('shareX').addEventListener('click',function(){
+  if(!S.last)return;
+  var u='https://x.com/intent/post?text='+encodeURIComponent(shareText(S.last.m,S.last.net))+
+    '&url='+encodeURIComponent(shareURL())+'&via=LPvsHODL';
+  window.open(u,'_blank','noopener');
+});
+$('copyLink').addEventListener('click',function(){
+  var b=$('copyLink'),link=shareURL();
+  function done(){b.textContent='Link copied';b.className='copybtn done';
+    setTimeout(function(){b.textContent='Copy link';b.className='copybtn';},2200);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(done,function(){window.prompt('Copy this link',link);});
+  }else window.prompt('Copy this link',link);
+});
 $('fee').addEventListener('input',function(){S.feeKnown=true;S.best=null;update();if(S.loaded)autoBest();});
 $('chain').addEventListener('change',function(){
   var v=$('chain').value;if(v&&$('url').value.trim())load(v);});
@@ -1659,6 +1921,21 @@ $('viewTog').textContent=(view()==='simple')?'Show the details':'Hide the detail
 
 setDaysAgo(182);
 update();
+
+/* A shared link carries the pool, the entry date, the deposit and the range,
+   so whoever opens it lands on the same backtest rather than a blank form. */
+(function restore(){
+  var q={};
+  location.search.replace(/^\?/,'').split('&').forEach(function(kv){
+    if(!kv)return;var p=kv.split('=');
+    try{q[decodeURIComponent(p[0])]=decodeURIComponent((p[1]||'').replace(/\+/g,' '));}catch(e){}
+  });
+  if(!q.a)return;
+  S.pending={d:q.d||'',q:parseFloat(q.q),lo:parseFloat(q.lo),up:parseFloat(q.up),rb:q.rb==='1'};
+  if(isFinite(S.pending.lo)&&isFinite(S.pending.up)&&view()==='simple')setView('detail');
+  $('url').value=q.a;
+  load(q.c||undefined);
+})();
 })();
 </script>
 </body>
