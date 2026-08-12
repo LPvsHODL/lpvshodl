@@ -1531,6 +1531,18 @@ function shareURL(){
     q.push('lo='+n('rDown'));q.push('up='+n('rUp'));
     if($('rebal').checked)q.push('rb=1');
   }
+  /* The outcome rides along so the link preview can show this result rather
+     than a generic card. The page itself never trusts these — it recomputes
+     everything from the pool data on load. */
+  if(S.last&&S.last.m){
+    var m=S.last.m,net=S.last.net;
+    q.push('pr='+encodeURIComponent(m.symA+'/'+m.symB));
+    q.push('ch='+encodeURIComponent(LVH.chainName(S.chain)));
+    q.push('dy='+m.days);
+    q.push('w='+(net>=0?1:0));
+    q.push('nt='+encodeURIComponent(money(Math.abs(net))));
+    q.push('fe='+encodeURIComponent(money(m.feeV)));
+  }
   return u+(q.length?'?'+q.join('&'):'');
 }
 function shareText(m,net){
