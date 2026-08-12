@@ -480,6 +480,40 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
 .faq details[open] summary::after{content:"\2212"}
 .faq details p{margin:11px 0 3px}
 @media(max-width:640px){.seo{margin-top:40px}.seo h2{font-size:22px}}
+/* ---- what-if price explorer ---- */
+.wi{margin-top:4px}
+.wi .quick{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px}
+.wi .quick button{background:transparent;border:1px solid var(--rule);border-radius:99px;
+  padding:6px 12px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--soft);cursor:pointer}
+.wi .quick button:hover{border-color:var(--accent);color:var(--accent)}
+.wi .quick button.on{background:var(--accent);border-color:var(--accent);color:var(--accentInk);font-weight:600}
+.wi .sliderwrap{margin:0 0 6px}
+.wi input[type=range]{width:100%;margin:0;accent-color:var(--accent);background:transparent}
+.wi .ends{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;color:var(--soft);margin-bottom:16px}
+.wi .big{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(24px,4vw,32px);
+  line-height:1.05;letter-spacing:-.02em;margin:0 0 3px}
+.wi .biglab{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--soft);margin-bottom:5px}
+.wi .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 4px}
+.wi .box{background:var(--card2);border:1px solid var(--rule);border-radius:11px;padding:13px 15px}
+.wi .box .lab{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--soft);margin-bottom:6px}
+.wi .box .val{font-family:"IBM Plex Mono",monospace;font-size:17px;font-weight:600}
+.wi .box .sub{font-size:11.5px;color:var(--soft);margin-top:5px;line-height:1.45}
+.wi .gap{border-radius:11px;padding:13px 15px;margin-top:12px;border:1px solid transparent}
+.wi .gap.neg{background:var(--badSoft)}
+.wi .gap.pos{background:var(--goodSoft)}
+.wi .gap.flat{background:var(--card2);border-color:var(--rule)}
+.wi .gap .val{font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:600}
+.wi .gap .lab{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--soft);margin-bottom:5px}
+.wi .story{font-size:13.5px;line-height:1.55;color:var(--soft);margin:13px 0 0}
+.wi .story strong{color:var(--ink)}
+.wi svg{width:100%;height:auto;display:block;margin:18px 0 4px;overflow:visible}
+.wi .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--soft);margin-top:2px}
+.wi .legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
+@media(max-width:560px){.wi .grid{grid-template-columns:1fr}}
 
 </style>
 </head>
@@ -692,6 +726,47 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
       <div class="note mutbox" id="ilNote">Load a pool to run the backtest.</div>
       <div class="note mutbox" id="rangeNote" hidden></div>
       <div class="note mutbox" id="fxNote" hidden></div>
+    </div>
+
+    <div class="card" id="wiCard" hidden style="margin-top:16px">
+      <h2 id="wiTitle">What if the price moves?</h2>
+      <p class="hint" style="margin:-4px 0 15px">Drag the price and watch what the pool does to your tokens. This is not a forecast &mdash; it is the same position priced at a different number, so you can see the trade before you make it.</p>
+      <div class="wi">
+        <div class="quick" id="wiQuick"></div>
+        <div class="sliderwrap"><input id="wiSlider" type="range" min="0" max="1000" value="500" aria-label="Price"></div>
+        <div class="ends"><span id="wiLow"></span><span id="wiHigh"></span></div>
+
+        <div class="biglab" id="wiPriceLab">Price</div>
+        <div class="big" id="wiPrice">&mdash;</div>
+
+        <div class="grid">
+          <div class="box">
+            <div class="lab">In the pool</div>
+            <div class="val" id="wiPoolVal">&mdash;</div>
+            <div class="sub" id="wiPoolLegs"></div>
+          </div>
+          <div class="box">
+            <div class="lab">If you'd just held</div>
+            <div class="val" id="wiHoldVal">&mdash;</div>
+            <div class="sub" id="wiHoldLegs"></div>
+          </div>
+        </div>
+
+        <div class="gap flat" id="wiGap">
+          <div class="lab">The difference</div>
+          <div class="val" id="wiGapVal">&mdash;</div>
+          <div class="sub" id="wiGapSub" style="font-size:11.5px;color:var(--soft);margin-top:5px"></div>
+        </div>
+
+        <p class="story" id="wiStory"></p>
+
+        <div id="wiChart"></div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>In the pool</span>
+          <span><i style="background:var(--warn)"></i>Just holding</span>
+          <span id="wiBandKey" hidden><i style="background:var(--rule);height:8px"></i>Your range</span>
+        </div>
+      </div>
     </div>
 
     <div class="card" id="baseCard" hidden style="margin-top:16px">
@@ -1687,8 +1762,174 @@ function emptyState(){
   $('ilNote').className='note mutbox';$('ilNote').textContent='Load a pool to run the backtest.';
   $('rangeNote').hidden=true;$('fxNote').hidden=true;$('depHint').textContent='';
   $('optbtn').disabled=true;$('optPanel').hidden=true;
-  $('shareRow').hidden=true;$('baseCard').hidden=true;
+  $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;
   advSummary();
+}
+
+
+/* ---------------------------------------------------------------------------
+   What if the price moves?
+
+   Impermanent loss cannot be learned from a definition. It can be learned in
+   about four seconds by dragging a slider and watching your ETH disappear.
+   This reprices the SAME position at a hypothetical price and shows both
+   sides: what the pool leaves you holding, and what doing nothing would have
+   left you holding.
+
+   It predicts nothing. It is arithmetic on a price you chose.
+   --------------------------------------------------------------------------- */
+
+var WI = {m:null, lo:0, hi:0, pa:0};
+
+/* Value and holdings of the position if token A were priced at paX.
+   Mirrors run()'s own maths so the two can never disagree. */
+function wiAt(m,paX){
+  var pb=m.pb1, r=paX/pb, amtA, amtB;
+  if(m.cl){
+    var L=LVH.v3L(m.V0/m.pb0,m.r0,m.lo,m.hi);
+    var am=LVH.v3Amounts(L,r,m.lo,m.hi);
+    amtA=am[0];amtB=am[1];
+  }else{
+    var pv=m.V0*Math.sqrt((paX/m.pa0)*(pb/m.pb0));
+    amtA=(pv/2)/paX;amtB=(pv/2)/pb;
+  }
+  var poolV=amtA*paX+amtB*pb, holdV=m.eA*paX+m.eB*pb;
+  return {pa:paX,r:r,amtA:amtA,amtB:amtB,poolV:poolV,holdV:holdV,
+          gap:poolV-holdV,breakeven:Math.max(0,holdV-poolV),
+          inRange:!m.cl||(r>=m.lo&&r<=m.hi)};
+}
+
+/* Log scale, so halving and doubling sit equally far from the middle. */
+function wiPrice(v){return WI.lo*Math.pow(WI.hi/WI.lo,v/1000);}
+function wiSlider(pa){
+  var t=Math.log(pa/WI.lo)/Math.log(WI.hi/WI.lo);
+  return Math.max(0,Math.min(1000,Math.round(t*1000)));
+}
+
+function wiChart(m){
+  var W=700,H=210,PADL=6,PADR=6,PADT=10,PADB=6,N=90;
+  var pts=[],minV=Infinity,maxV=-Infinity;
+  for(var i=0;i<=N;i++){
+    var pa=wiPrice(i/N*1000),a=wiAt(m,pa);
+    pts.push(a);
+    minV=Math.min(minV,a.poolV,a.holdV);maxV=Math.max(maxV,a.poolV,a.holdV);
+  }
+  if(!(maxV>minV))return '';
+  var pad=(maxV-minV)*0.08;minV-=pad;maxV+=pad;
+  function X(i){return PADL+(W-PADL-PADR)*(i/N);}
+  function Y(v){return PADT+(H-PADT-PADB)*(1-(v-minV)/(maxV-minV));}
+  var poolPath='',holdPath='';
+  pts.forEach(function(a,i){
+    poolPath+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(a.poolV).toFixed(1);
+    holdPath+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(a.holdV).toFixed(1);
+  });
+  /* shade the user's range so out-of-range is visible at a glance */
+  var band='';
+  if(m.cl){
+    var i0=null,i1=null;
+    pts.forEach(function(a,i){if(a.inRange){if(i0===null)i0=i;i1=i;}});
+    if(i0!==null)band='<rect x="'+X(i0).toFixed(1)+'" y="'+PADT+'" width="'+
+      Math.max(1,(X(i1)-X(i0))).toFixed(1)+'" height="'+(H-PADT-PADB)+
+      '" fill="var(--accentSoft)"/>';
+  }
+  var cx=X(wiSlider(WI.pa)/1000*N);
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" '+
+    'aria-label="Position value versus holding, across a range of prices">'+
+    band+
+    '<line x1="'+cx.toFixed(1)+'" y1="'+PADT+'" x2="'+cx.toFixed(1)+'" y2="'+(H-PADB)+
+      '" stroke="var(--soft)" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>'+
+    '<path d="'+holdPath+'" fill="none" stroke="var(--warn)" stroke-width="2.5" '+
+      'stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'+
+    '<path d="'+poolPath+'" fill="none" stroke="var(--accent)" stroke-width="2.5" '+
+      'stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'+
+    '</svg>';
+}
+
+function wiPaint(){
+  var m=WI.m;if(!m)return;
+  var a=wiAt(m,WI.pa);
+  var moved=WI.pa/m.pa1-1;
+
+  $('wiPriceLab').textContent=esc(m.symA)+' price'+
+    (Math.abs(moved)<0.005?' (where it is now)':(moved>0?' \u2014 up '+(moved*100).toFixed(0)+'%':' \u2014 down '+Math.abs(moved*100).toFixed(0)+'%'));
+  $('wiPrice').textContent=money(WI.pa);
+
+  $('wiPoolVal').textContent=money(a.poolV);
+  $('wiPoolLegs').innerHTML=tok(a.amtA)+' '+esc(m.symA)+' + '+tok(a.amtB)+' '+esc(m.symB)+
+    (m.cl&&!a.inRange?'<br><span style="color:var(--warn)">outside your range \u2014 earning nothing</span>':'');
+  $('wiHoldVal').textContent=money(a.holdV);
+  $('wiHoldLegs').innerHTML=tok(m.eA)+' '+esc(m.symA)+' + '+tok(m.eB)+' '+esc(m.symB);
+
+  var g=$('wiGap');
+  g.className='gap '+(a.gap<-0.005*m.V0?'neg':(a.gap>0.005*m.V0?'pos':'flat'));
+  $('wiGapVal').innerHTML=signed(a.gap);
+  $('wiGapSub').textContent=a.breakeven>0
+    ? 'You would need '+money(a.breakeven)+' of fees just to break even with doing nothing.'
+    : 'At this price the pool is level with or ahead of holding, before fees.';
+
+  /* the sentence */
+  var symA=esc(m.symA),symB=esc(m.symB),pct=Math.abs(moved*100),out;
+  if(Math.abs(moved)<0.005){
+    out='This is roughly where the price sits now. Drag the slider, or tap a button above, '+
+        'to see what a move would do.';
+  }else if(m.cl&&!a.inRange&&a.r>m.hi){
+    out='If '+symA+' rose '+pct.toFixed(0)+'%, it would be above your range. <strong>You would hold no '+
+        symA+' at all</strong> \u2014 the pool would have sold every bit of it on the way up, most of it '+
+        'for less than it ended up worth. Fees would have stopped the moment price left your band.';
+  }else if(m.cl&&!a.inRange){
+    out='If '+symA+' fell '+pct.toFixed(0)+'%, it would be below your range. <strong>You would be holding '+
+        'nothing but '+symA+'</strong> \u2014 the pool would have spent all your '+symB+' buying more of it '+
+        'the whole way down. Fees would have stopped too.';
+  }else if(moved>0){
+    out='If '+symA+' rose '+pct.toFixed(0)+'%, the pool would have sold some of your '+symA+' as it '+
+        'climbed. You end up holding less of the winner than if you had simply done nothing.';
+  }else{
+    out='If '+symA+' fell '+pct.toFixed(0)+'%, the pool would have kept buying '+symA+' as it dropped, '+
+        'paying with your '+symB+'. You end up holding more of the loser.';
+  }
+  $('wiStory').innerHTML=out;
+  $('wiChart').innerHTML=wiChart(m);
+
+  Array.prototype.forEach.call($('wiQuick').children,function(b){
+    b.classList.toggle('on',Math.abs(+b.dataset.pa/WI.pa-1)<0.005);
+  });
+}
+
+function renderWhatIf(m){
+  if(!m||!(m.pa1>0)||!(m.V0>0)){$('wiCard').hidden=true;return;}
+  WI.m=m;
+
+  /* Span enough price to show the whole story, and always enough to push a
+     bounded position clear out of both ends of its range. */
+  var lo=m.pa1/4, hi=m.pa1*4;
+  if(m.cl){
+    lo=Math.min(lo,m.lo*m.pb1*0.75);
+    hi=Math.max(hi,m.hi*m.pb1*1.35);
+  }
+  WI.lo=Math.max(1e-12,lo);WI.hi=hi;
+  if(!(WI.pa>0)||WI.pa<WI.lo||WI.pa>WI.hi)WI.pa=m.pa1;
+
+  $('wiTitle').textContent='What if '+m.symA+' moves?';
+  $('wiLow').textContent=money(WI.lo);
+  $('wiHigh').textContent=money(WI.hi);
+
+  var opts=[['\u221250%',0.5],['\u221225%',0.75],['now',1],['+50%',1.5],['2\u00d7',2],['3\u00d7',3]];
+  $('wiQuick').innerHTML=opts.map(function(o){
+    var pa=m.pa1*o[1];
+    if(pa<WI.lo||pa>WI.hi)return '';
+    return '<button type="button" data-pa="'+pa+'">'+o[0]+' \u00b7 '+money(pa)+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('wiQuick').children,function(b){
+    b.addEventListener('click',function(){
+      WI.pa=+b.dataset.pa;$('wiSlider').value=wiSlider(WI.pa);wiPaint();
+      LVHA.once('whatif_used');
+    });
+  });
+
+  $('wiSlider').value=wiSlider(WI.pa);
+  $('wiBandKey').hidden=!m.cl;
+  $('wiCard').hidden=false;
+  wiPaint();
 }
 
 function renderBases(m,total,gas){
@@ -1828,7 +2069,7 @@ function update(){
     bar('holdBarA','holdBarB',m.holdA,m.holdB);
     $('ilNote').className='note mutbox';$('ilNote').textContent='Only the hold comparison is shown.';
     $('rangeNote').hidden=true;$('fxNote').hidden=true;$('feeFlag').hidden=true;$('aprFlag').hidden=true;
-    $('shareRow').hidden=true;$('baseCard').hidden=true;
+    $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;
     return;
   }
   $('naNote').hidden=true;
@@ -1975,6 +2216,7 @@ function update(){
       money(total)+'</strong> today, versus <strong>'+money(total,LVH.fx.then)+
       '</strong> at the entry-date rate \u2014 that gap is currency, not the pool.';
   }
+  renderWhatIf(m);
   renderBases(m,total,gas);
   wireShare(m,net);
   renderSuggest(m,net);
