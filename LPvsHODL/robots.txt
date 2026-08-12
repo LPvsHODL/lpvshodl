@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Share links carry result parameters and all resolve to the same page.
+# The canonical tag already handles this, but keeping them out of the crawl
+# budget avoids thousands of near-duplicate URLs.
+Disallow: /*?*pr=
+Disallow: /*?*nt=
+
+Sitemap: https://lpvshodl.com/sitemap.xml

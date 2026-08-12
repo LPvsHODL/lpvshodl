@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LP vs HODL — did the liquidity pool beat holding?</title>
-<meta name="description" content="Backtest any liquidity pool against real history — fees earned in each token, impermanent loss, days spent out of range, and whether providing liquidity beat simply holding.">
+<title>Impermanent Loss Calculator &amp; Liquidity Pool Backtest — LPvsHODL</title>
+<meta name="description" content="Free impermanent loss calculator and LP backtester. Paste any Uniswap, PancakeSwap or SushiSwap pool and see fees earned in each token, impermanent loss, days out of range, and whether providing liquidity actually beat holding.">
+<meta name="keywords" content="impermanent loss calculator, liquidity pool calculator, uniswap v3 calculator, LP vs hodl, concentrated liquidity range, defi yield backtest">
 <link rel="canonical" href="https://lpvshodl.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="LPvsHODL">
@@ -23,6 +24,93 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://lpvshodl.com/#website",
+      "url": "https://lpvshodl.com/",
+      "name": "LPvsHODL",
+      "description": "Backtest any liquidity pool against real history."
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://lpvshodl.com/#app",
+      "name": "LPvsHODL Impermanent Loss Calculator",
+      "url": "https://lpvshodl.com/",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript",
+      "description": "Backtest a liquidity pool position against real price and volume history. Shows fees earned in each token, impermanent loss, days spent out of range, and whether providing liquidity beat simply holding the tokens.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "featureList": [
+        "Impermanent loss calculation from real historical prices",
+        "Fees earned broken down per token",
+        "Concentrated liquidity range backtesting",
+        "Days spent out of range",
+        "Comparison against holding each token outright",
+        "Range re-centring with costs included"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://lpvshodl.com/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is impermanent loss?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Impermanent loss is the gap between what your tokens are worth inside a liquidity pool and what the same tokens would have been worth if you had simply held them. It happens because a pool automatically sells whichever token is rising and buys whichever is falling. It is called impermanent because it disappears if prices return to where they started, and it becomes permanent the moment you withdraw."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does providing liquidity beat holding?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sometimes. Fees have to out-earn impermanent loss for a pool to beat holding, which tends to happen in pools where both tokens move together or trade sideways with heavy volume. When one token strongly outperforms the other, holding that token outright usually wins. The only way to know for a specific pool and period is to backtest it against real price and volume history."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is impermanent loss calculated?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "For a full-range position the value of your deposit tracks the square root of the price ratio between the two tokens, while simply holding tracks the average. Impermanent loss is the difference between those two. For a concentrated position it also depends on the range you set, because the position converts entirely into one token once price leaves the band."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens when a concentrated liquidity position goes out of range?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It stops earning fees and sits entirely in one token — the one that fell in relative terms. It starts earning again only if price comes back inside the band, or if you close it and open a new position around the current price, which costs gas and locks in the loss."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is this calculator free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. There is no account, no wallet connection and no login. Pool data is fetched directly from your browser and your preferences are stored locally on your own device."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<!-- Analytics. Cloudflare Web Analytics can also be switched on from the Pages
+     dashboard with no code at all; if you do that, leave this commented out.
+     To use the script instead, uncomment and paste your token.
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token": "YOUR_TOKEN_HERE"}'></script>
+-->
 <style>
 :root{
   --bg:#F1F3F5; --card:#FFFFFF; --card2:#F6F8FA; --ink:#10141C; --soft:#5F6B7A;
@@ -370,6 +458,28 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
 .xlink svg{width:12px;height:12px;fill:currentColor}
 footer.site .cols a.x{display:inline-flex;align-items:center;gap:5px}
 footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
+/* ---- long-form content below the tool ---- */
+.seo{max-width:760px;margin:56px auto 0;padding-top:34px;border-top:1px solid var(--rule)}
+.seo h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:26px;
+  line-height:1.15;letter-spacing:-.02em;margin:38px 0 14px}
+.seo h2:first-child{margin-top:0}
+.seo h3{font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:16.5px;margin:26px 0 8px}
+.seo p{font-size:15.5px;line-height:1.62;color:var(--soft);margin:0 0 14px}
+.seo p strong{color:var(--ink);font-weight:600}
+.seo a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+.seo a:hover{border-bottom-color:var(--accent)}
+.seo ul{margin:0 0 14px;padding-left:20px}
+.seo li{font-size:15.5px;line-height:1.62;color:var(--soft);margin-bottom:7px}
+.seo .lead{font-size:17px;color:var(--ink)}
+.faq details{border-bottom:1px solid var(--rule);padding:13px 0}
+.faq details:first-of-type{border-top:1px solid var(--rule)}
+.faq summary{cursor:pointer;font-family:"IBM Plex Sans",sans-serif;font-weight:600;
+  font-size:15.5px;color:var(--ink);list-style:none;display:flex;justify-content:space-between;gap:14px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:var(--soft);font-weight:400;flex:none}
+.faq details[open] summary::after{content:"\2212"}
+.faq details p{margin:11px 0 3px}
+@media(max-width:640px){.seo{margin-top:40px}.seo h2{font-size:22px}}
 
 </style>
 </head>
@@ -669,15 +779,116 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
   </ul>
 </div>
 
+<section class="seo">
+  <h2>What this calculator actually tells you</h2>
+  <p class="lead">Most liquidity pool calculators ask you to guess an APR and then project it forward. This one does the opposite: it takes a pool you can name, a date you can pick, and the real prices and trading volume that followed, and works out what would actually have happened.</p>
+  <p>The number that matters is not how much you earned in fees. It is whether those fees covered what the pool quietly did to your tokens while you were earning them. A pool is a machine that sells whatever is going up and buys whatever is going down. Over a period when one token strongly outperforms the other, that machine can cost you far more than the fees pay — and every APR figure you have seen advertised leaves that part out.</p>
+
+  <h2>Impermanent loss, without the hand-waving</h2>
+  <p><strong>Impermanent loss</strong> is the gap between what your tokens are worth in the pool and what the identical tokens would have been worth sitting in your wallet. It is not a fee, nothing is deducted, and no one takes it from you. It is an opportunity cost created by the pool's rebalancing, and it becomes real the moment you withdraw.</p>
+  <p>The word "impermanent" is doing a lot of misleading work. The loss reverses only if prices return to the ratio they had when you deposited. If the market has genuinely repriced one token against the other, waiting does not undo it.</p>
+  <p>For a full-range position the arithmetic is well known: your position value tracks the square root of the price ratio while holding tracks the arithmetic average, and impermanent loss is the difference between those two curves. A 2× move in one token against the other costs roughly 5.7%. A 4× move costs 20%. A 10× move costs about 42%. Those figures are before fees, which is exactly why fees matter so much.</p>
+
+  <h2>Concentrated liquidity makes both effects larger</h2>
+  <p>Uniswap v3 and the many protocols that copied it let you concentrate your deposit into a price band instead of spreading it across every possible price. Inside that band you earn far more fees per dollar. Outside it you earn nothing at all, and your position sits entirely in whichever token lost ground.</p>
+  <p>This is the trade newcomers underestimate. A narrow range can multiply your fee income several times over and can also convert your entire position into the wrong token during a single week's move. The tool reports what share of days your position actually spent earning, because that one figure explains most of the difference between a pool that worked and one that did not.</p>
+  <p>You can also switch on range re-centring, which models closing and reopening the position each time price escapes your band. It keeps you earning, and it charges you for the privilege: gas each time, plus the realised loss on the token that ran away. Both are counted.</p>
+
+  <h2>Why we compare against more than just holding both tokens</h2>
+  <p>The standard comparison — pool versus holding the two tokens you deposited — flatters liquidity provision, because it quietly assumes you would have bought a 50/50 basket anyway. Most people would not have. So the results also compare against holding each token on its own, and against not buying anything at all.</p>
+  <p>Holding the stronger token outright beats the pool remarkably often. That is uncomfortable, it is hindsight, and it is worth seeing anyway, because it is the honest measure of what the pool cost you.</p>
+
+  <h2>Which pools and chains are supported</h2>
+  <p>Any pool with a public address on a major chain: Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Solana and more. That covers Uniswap v2, v3 and v4, PancakeSwap, SushiSwap, Aerodrome, Trader Joe, Curve-style pools and most forks of them. Paste a pool address or a link from Uniswap, GeckoTerminal or DexScreener — the chain, protocol and fee tier are detected for you.</p>
+  <p>Price and volume history comes from GeckoTerminal and covers a six-month backtest window. Exchange rates for non-dollar currencies come from Frankfurter. Nothing is stored on a server, and no wallet connection is ever requested.</p>
+
+  <h2>Common questions</h2>
+  <div class="faq">
+    <details>
+      <summary>What is impermanent loss in simple terms?</summary>
+      <p>You put two tokens into a pool. One goes up a lot. The pool sells some of it on the way up and buys more of the other. When you withdraw, you have less of the winner and more of the loser than you started with. Impermanent loss is the value of that difference — the cost of having been automatically rebalanced.</p>
+    </details>
+    <details>
+      <summary>Does providing liquidity beat holding?</summary>
+      <p>Sometimes, and less often than the advertised yields suggest. It tends to work in pools where both tokens move together, in stablecoin pairs, and anywhere volume is heavy relative to the amount of liquidity competing for it. It tends to fail when one token strongly outperforms the other. The only way to know for a specific pool over a specific period is to test it, which is what this tool is for.</p>
+    </details>
+    <details>
+      <summary>How is impermanent loss calculated?</summary>
+      <p>For a full-range position, position value follows the square root of the price ratio between the two tokens, while holding follows the arithmetic average of their price changes. Impermanent loss is the difference. For a concentrated position it also depends on the range you set, because the position fully converts to one token once price leaves the band. This calculator computes it from actual daily prices rather than a formula applied to start and end points.</p>
+    </details>
+    <details>
+      <summary>What happens when my position goes out of range?</summary>
+      <p>It stops earning fees entirely and sits in one token — the one that fell in relative terms. It resumes only if price re-enters your band, or if you close and reopen around the current price. Reopening costs gas and locks in the loss, which is why the re-centring option in this tool charges you for both.</p>
+    </details>
+    <details>
+      <summary>Are the fee estimates accurate?</summary>
+      <p>They are a reasonable floor rather than a promise. Fees are estimated from the pool's real daily volume and fee tier, scaled by the share of the pool your deposit would represent. For concentrated positions the estimate is conservative: a narrow range earns more per dollar than this model credits it with, because it does not attempt to reconstruct the full liquidity distribution at every tick on every day.</p>
+    </details>
+    <details>
+      <summary>Do I need to connect a wallet?</summary>
+      <p>No. There is no wallet connection, no account and no login. Paste a public pool address. Your theme, currency and recently viewed pools are stored in your own browser and never sent anywhere.</p>
+    </details>
+    <details>
+      <summary>Why does my deposit size change the result?</summary>
+      <p>Because fees are shared. Your cut is your deposit as a proportion of everything in the pool, so a large deposit into a small pool dilutes its own yield. There is also a setting for liquidity arriving or leaving over the period, since a pool that doubles in size halves what you earn from the same trading volume.</p>
+    </details>
+  </div>
+</section>
+
 <footer class="site">
   <div class="cols">
     <div>&copy; 2026 LPvsHODL</div>
-    <div><a href="/">Backtest</a> &nbsp; <a class="x" href="https://x.com/LPvsHODL" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@LPvsHODL</a> &nbsp; <a href="mailto:hello@lpvshodl.com">Contact</a></div>
+    <div><a href="/">Backtest</a> &nbsp; <a class="x" href="https://x.com/LPvsHODL" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@LPvsHODL</a> &nbsp; <a href="/impermanent-loss/">Impermanent loss guide</a> &nbsp; <a href="mailto:hello@lpvshodl.com">Contact</a></div>
   </div>
   <p class="legal">This site stores your theme, currency and recently viewed pools in your own browser using local storage. It has no accounts, no login and no server-side database, and it does not sell or share personal data. Pool data comes from GeckoTerminal and exchange rates from Frankfurter; those requests are made directly from your browser. Nothing on this site is financial, investment or tax advice — providing liquidity carries real risk of loss.</p>
 </footer>
 
 </div>
+
+<script>
+/* ---------------------------------------------------------------------------
+   Analytics shim.
+
+   Deliberately provider-agnostic: it hands events to whichever analytics tool
+   happens to be on the page and does nothing at all if none is. That way the
+   event calls scattered through the app never need touching again, whether you
+   end up on Cloudflare Web Analytics, Plausible, Fathom or GA4.
+
+   Nothing here sends anything on its own, sets a cookie, or identifies anyone.
+   --------------------------------------------------------------------------- */
+window.LVHA = (function () {
+  function track(name, props) {
+    try {
+      if (typeof window.plausible === 'function') { window.plausible(name, { props: props || {} }); return; }
+      if (typeof window.fathom === 'object' && window.fathom.trackEvent) { window.fathom.trackEvent(name); return; }
+      if (typeof window.gtag === 'function') { window.gtag('event', name, props || {}); return; }
+      if (window.dataLayer && window.dataLayer.push) { window.dataLayer.push(Object.assign({ event: name }, props || {})); }
+    } catch (e) {}
+  }
+
+  /* Engagement depth. Pageviews say almost nothing about a tool — what matters
+     is whether someone who landed actually ran a backtest. These fire once each
+     per visit so the funnel stays readable: landed -> loaded a pool -> looked
+     at detail -> shared. */
+  var fired = {};
+  function once(name, props) { if (fired[name]) return; fired[name] = 1; track(name, props); }
+
+  /* Rough time-on-page, reported in buckets at 15s, 60s and 180s. Most hosted
+     analytics can only infer dwell time from a second pageview, which a
+     single-page tool never produces, so without this every visit looks like a
+     bounce no matter how long someone stayed. */
+  var t0 = Date.now(), marks = [15, 60, 180], mi = 0, timer = null;
+  function tick() {
+    if (mi >= marks.length) { clearInterval(timer); return; }
+    if ((Date.now() - t0) / 1000 >= marks[mi]) { once('dwell_' + marks[mi] + 's'); mi++; }
+  }
+  if (!/bot|crawl|spider|slurp|bingpreview|headless/i.test(navigator.userAgent || '')) {
+    timer = setInterval(tick, 5000);
+  }
+
+  return { track: track, once: once };
+})();
+</script>
 
 <script>
 /* LPvsHODL — shared library. Loaded by every tool page before its own script. */
@@ -1088,6 +1299,7 @@ var VIEW='lvh-view';
 function view(){return LVH.get(VIEW,'simple');}
 function setView(v){
   document.documentElement.setAttribute('data-view',v);
+  LVHA.once(v==='detail'?'view_detail':'view_simple');
   LVH.set(VIEW,v);
   $('viewTog').textContent=(v==='simple')?'Show the details':'Hide the details';
   update();if(S.loaded)autoBest();
@@ -1163,6 +1375,7 @@ function load(forceChain){
   }
   step.catch(function(e){
     try{
+      LVHA.track('pool_load_failed',{code:String((e&&e.code)||'unknown')});
       if(e&&e.handled)return;
       if(e&&e.code===429){
         setStatus('You\u2019re loading pools faster than the free data source allows \u2014 roughly 30 requests a minute, and each pool costs several. Wait a minute and try again.','err');
@@ -1291,6 +1504,7 @@ function fetchPool(chain,addr){
       if(p.rb){$('rebal').checked=true;$('rebalBody').hidden=false;}
       if(p.q>0)S.pendingFiat=p.q;
     }
+    LVHA.once('pool_loaded',{chain:S.chain||'',dex:S.dex||'',pair:S.label||''});
     snapDate();
   });
 }
@@ -1878,16 +2092,19 @@ function setMode(mo){
 ['symA','symB','pa0','pb0','pa1','pb1','tvl','gas','rDown','rUp','width','drift','rebalCost','rebalWait'].forEach(function(id){
   $(id).addEventListener('input',function(){S.best=null;update();if(S.loaded)autoBest();});});
 $('rebal').addEventListener('change',function(){
+  if($('rebal').checked)LVHA.once('rebalance_enabled');
   $('rebalBody').hidden=!$('rebal').checked;
   S.best=null;update();if(S.loaded)autoBest();});
 
 $('shareX').addEventListener('click',function(){
   if(!S.last)return;
+  LVHA.track('share_x',{pair:(S.label||''),chain:(S.chain||'')});
   var u='https://x.com/intent/post?text='+encodeURIComponent(shareText(S.last.m,S.last.net))+
     '&url='+encodeURIComponent(shareURL())+'&via=LPvsHODL';
   window.open(u,'_blank','noopener');
 });
 $('copyLink').addEventListener('click',function(){
+  LVHA.track('copy_link',{pair:(S.label||'')});
   var b=$('copyLink'),link=shareURL();
   function done(){b.textContent='Link copied';b.className='copybtn done';
     setTimeout(function(){b.textContent='Copy link';b.className='copybtn';},2200);}
@@ -1908,6 +2125,7 @@ $('load').addEventListener('click',function(){load();});
 $('url').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();load();}});
 $('date').addEventListener('change',function(){snapDate();syncChips();});
 $('optbtn').addEventListener('click',function(){
+  LVHA.track('find_best_range',{pair:(S.label||'')});
   var b=search();if(!b)return;S.best=b;showBest(b);
   setMode('bounds');$('rDown').value=b.down;$('rUp').value=b.up;update();});
 Array.prototype.forEach.call($('dateChips').children,function(b){
