@@ -1,4 +1,4 @@
-**
+/**
  * GET /api/pool?chain=base&address=0x...&from=<unix>
  *
  * Returns hourly snapshots of a Uniswap-v3-style pool, including the fee
