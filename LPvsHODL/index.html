@@ -2661,7 +2661,10 @@ function update(){
   bar('holdBarA','holdBarB',m.holdA,m.holdB);
   legs('holdLegs',m.symA,m.symB,m.eA,m.eB,m.holdA,m.holdB);
 
-  var il=m.posV-m.rebased;
+  /* Measure against holding exactly what you deposited — the same baseline the
+     ledger above uses. Comparing with a 50/50 split instead put two different
+     "cost of being in the pool" figures on the same screen. */
+  var il=m.posV-m.hold;
   var rose=(m.r1>=m.r0)?m.symA:m.symB, fell=(m.r1>=m.r0)?m.symB:m.symA;
   $('ilNote').className='note'+(il<-0.5?' badbox':'');
   if(Math.abs(il)<Math.max(0.5,m.V0*0.0005)){
@@ -2705,7 +2708,7 @@ function update(){
       money(m.lo*m.pb1)+'</strong> and <strong>'+money(m.hi*m.pb1)+'</strong>. It was inside that window <strong>'+
       pct.toFixed(0)+'%</strong> of the time'+(out>0?' \u2014 the other '+out+' days it earned nothing.':'.')+
       (pct<100?'<br><br>Switch on re-centring in the range panel to see what chasing the price would have cost.':'')+
-      '<br><br>Real fees would likely be higher than shown. A narrow band earns more per dollar than a wide one, and this doesn\u2019t count that.';
+      (m.feeSrc==='exact'?'':'<br><br>Real fees would likely be higher than shown. A narrow band earns more per dollar than a wide one, and this estimate doesn\u2019t count that.');
   }else{
     $('rangeNote').className='note mutbox';
     $('rangeNote').textContent='This pool earns at every price, so there is no range to set. It never stops earning fees, but it also never concentrates them.';
