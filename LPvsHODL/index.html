@@ -459,6 +459,36 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
 .xlink svg{width:17px;height:17px;fill:currentColor}
 footer.site .cols a.x{display:inline-flex;align-items:center;gap:5px}
 footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
+
+/* ---- sliders you can actually grab ---- */
+.rng{-webkit-appearance:none;appearance:none;width:100%;height:30px;margin:0;
+  background:transparent;cursor:pointer;display:block;touch-action:pan-y}
+.rng:focus{outline:none}
+.rng::-webkit-slider-runnable-track{height:8px;border-radius:99px;
+  background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--fill,50%),
+    var(--rule) var(--fill,50%),var(--rule) 100%)}
+.rng::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:26px;height:26px;border-radius:50%;background:var(--accent);
+  border:4px solid var(--card);box-shadow:0 1px 5px rgba(0,0,0,.4);margin-top:-9px;
+  transition:transform .08s ease}
+.rng:hover::-webkit-slider-thumb{transform:scale(1.08)}
+.rng:active::-webkit-slider-thumb{transform:scale(1.16)}
+.rng:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--accentSoft)}
+.rng::-moz-range-track{height:8px;border-radius:99px;background:var(--rule)}
+.rng::-moz-range-progress{height:8px;border-radius:99px;background:var(--accent)}
+.rng::-moz-range-thumb{width:22px;height:22px;border:4px solid var(--card);
+  border-radius:50%;background:var(--accent);box-shadow:0 1px 5px rgba(0,0,0,.4)}
+.rng:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px var(--accentSoft)}
+
+/* range sliders in the form */
+.rngbox{margin-top:14px}
+.rngbox .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px}
+.rngbox .top label{font-size:12.5px;font-weight:600;color:var(--ink);margin:0}
+.rngbox .top .now{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--soft)}
+.rngbox .top .now b{color:var(--accent);font-weight:600}
+.rngbox .ends{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;color:var(--soft);margin-top:-4px}
+
 /* ---- which fee source produced the number ---- */
 .srcbadge{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:5px 12px;
   font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.02em;margin-bottom:12px}
@@ -496,7 +526,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
 .wi .quick button:hover{border-color:var(--accent);color:var(--accent)}
 .wi .quick button.on{background:var(--accent);border-color:var(--accent);color:var(--accentInk);font-weight:600}
 .wi .sliderwrap{margin:0 0 6px}
-.wi input[type=range]{width:100%;margin:0;accent-color:var(--accent);background:transparent}
+.wi .sliderwrap{margin:0 0 2px}
 .wi .ends{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;
   font-size:10.5px;color:var(--soft);margin-bottom:16px}
 .wi .big{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(24px,4vw,32px);
@@ -603,6 +633,18 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
           <div class="field" style="margin:0"><label for="rDown">Lower &minus;%</label><input id="rDown" type="number" step="any" min="0" max="99" value="20"></div>
           <div class="field" style="margin:0"><label for="rUp">Upper +%</label><input id="rUp" type="number" step="any" min="0" value="20"></div>
         </div>
+        <div class="rngbox">
+          <div class="top"><label for="rDownS">Lower bound</label>
+            <span class="now">&minus;<b id="rDownNow">20</b>% &middot; <span id="rDownPx">&mdash;</span></span></div>
+          <input class="rng" id="rDownS" type="range" min="1" max="95" step="1" value="20" aria-label="Lower bound percent">
+          <div class="ends"><span>&minus;1%</span><span>&minus;95%</span></div>
+        </div>
+        <div class="rngbox" style="margin-bottom:12px">
+          <div class="top"><label for="rUpS">Upper bound</label>
+            <span class="now">+<b id="rUpNow">20</b>% &middot; <span id="rUpPx">&mdash;</span></span></div>
+          <input class="rng" id="rUpS" type="range" min="1" max="300" step="1" value="20" aria-label="Upper bound percent">
+          <div class="ends"><span>+1%</span><span>+300%</span></div>
+        </div>
         <div class="chips">
           <button type="button" class="chip" data-r="5">&plusmn;5%</button>
           <button type="button" class="chip" data-r="10">&plusmn;10%</button>
@@ -683,6 +725,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     <div class="pills" id="pills"></div>
     <div class="headline" aria-live="polite">
       <p class="ratio" id="ratioLine"></p>
+      <div id="srcBadge" hidden></div>
       <div class="ledger" id="ledger" hidden>
         <div class="lrow"><span id="lCostLab">Cost of providing liquidity</span><b id="lCost">&mdash;</b></div>
         <div class="lrow"><span>Fees it paid you</span><b id="lFee">&mdash;</b></div>
@@ -732,7 +775,6 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     <div class="card" id="costCard" style="margin-top:16px">
       <h2>What the pool did to your money</h2>
       <div class="note badbox" id="naNote" hidden></div>
-      <div id="srcBadge" hidden></div>
       <div class="note warnbox" id="feeFlag" hidden></div>
       <div class="note warnbox" id="aprFlag" hidden></div>
       <div class="note mutbox" id="ilNote">Load a pool to run the backtest.</div>
@@ -745,7 +787,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
       <p class="hint" style="margin:-4px 0 15px">Drag the price and watch what the pool does to your tokens. This is not a forecast &mdash; it is the same position priced at a different number, so you can see the trade before you make it.</p>
       <div class="wi">
         <div class="quick" id="wiQuick"></div>
-        <div class="sliderwrap"><input id="wiSlider" type="range" min="0" max="1000" value="500" aria-label="Price"></div>
+        <div class="sliderwrap"><input class="rng" id="wiSlider" type="range" min="0" max="1000" value="500" aria-label="Price"></div>
         <div class="ends"><span id="wiLow"></span><span id="wiHigh"></span></div>
 
         <div class="biglab" id="wiPriceLab">Price</div>
@@ -2064,16 +2106,49 @@ function wiPaint(){
   });
 }
 
+
+/* Paint the filled portion of a slider so the track shows progress. */
+function paintRng(el){
+  if(!el)return;
+  var mn=+el.min||0,mx=+el.max||100,v=+el.value;
+  el.style.setProperty('--fill',(100*(v-mn)/Math.max(1e-9,mx-mn)).toFixed(2)+'%');
+}
+
+/* Keep the range sliders and the number boxes showing the same thing, and
+   label each with the actual price it lands on. */
+function syncRangeUI(fromSlider){
+  var d=$('rDown'),u=$('rUp'),ds=$('rDownS'),us=$('rUpS');
+  if(!d||!ds)return;
+  if(fromSlider){ d.value=ds.value; u.value=us.value; }
+  else{
+    var dv=Math.max(1,Math.min(95,Math.round(n('rDown'))||1));
+    var uv=Math.max(1,Math.min(300,Math.round(n('rUp'))||1));
+    ds.value=dv; us.value=uv;
+  }
+  $('rDownNow').textContent=ds.value;
+  $('rUpNow').textContent=us.value;
+  paintRng(ds);paintRng(us);
+
+  /* show what those percentages mean in money */
+  var pa1=n('pa1');
+  if(pa1>0){
+    $('rDownPx').textContent=money(pa1*(1-ds.value/100));
+    $('rUpPx').textContent=money(pa1*(1+us.value/100));
+  }else{$('rDownPx').textContent='\u2014';$('rUpPx').textContent='\u2014';}
+}
+
 function renderWhatIf(m){
   if(!m||!(m.pa1>0)||!(m.V0>0)){$('wiCard').hidden=true;return;}
   WI.m=m;
 
   /* Span enough price to show the whole story, and always enough to push a
      bounded position clear out of both ends of its range. */
-  var lo=m.pa1/4, hi=m.pa1*4;
+  var lo=m.pa1/3, hi=m.pa1*3;
   if(m.cl){
-    lo=Math.min(lo,m.lo*m.pb1*0.75);
-    hi=Math.max(hi,m.hi*m.pb1*1.35);
+    /* always reach a little past both edges of the band, but no further than
+       needed — a slider spanning sixteen-fold is impossible to aim */
+    lo=Math.max(m.pa1/4,Math.min(lo,m.lo*m.pb1*0.90));
+    hi=Math.min(m.pa1*4,Math.max(hi,m.hi*m.pb1*1.10));
   }
   WI.lo=Math.max(1e-12,lo);WI.hi=hi;
   if(!(WI.pa>0)||WI.pa<WI.lo||WI.pa>WI.hi)WI.pa=m.pa1;
@@ -2090,12 +2165,12 @@ function renderWhatIf(m){
   }).join('');
   Array.prototype.forEach.call($('wiQuick').children,function(b){
     b.addEventListener('click',function(){
-      WI.pa=+b.dataset.pa;$('wiSlider').value=wiSlider(WI.pa);wiPaint();
+      WI.pa=+b.dataset.pa;$('wiSlider').value=wiSlider(WI.pa);paintRng($('wiSlider'));wiPaint();
       LVHA.once('whatif_used');
     });
   });
 
-  $('wiSlider').value=wiSlider(WI.pa);
+  $('wiSlider').value=wiSlider(WI.pa);paintRng($('wiSlider'));
   $('wiBandKey').hidden=!m.cl;
   $('wiCard').hidden=false;
   wiPaint();
@@ -2385,6 +2460,7 @@ function update(){
       money(total)+'</strong> today, versus <strong>'+money(total,LVH.fx.then)+
       '</strong> at the entry-date rate \u2014 that gap is currency, not the pool.';
   }
+  syncRangeUI(false);
   var sb=$('srcBadge');
   if(m.feeSrc==='exact'){
     sb.hidden=false;sb.className='srcbadge exact';
@@ -2516,6 +2592,15 @@ function setMode(mo){
     syncValues();S.best=null;update();if(S.loaded)autoBest();});});
 ['symA','symB','pa0','pb0','pa1','pb1','tvl','gas','rDown','rUp','width','drift','rebalCost','rebalWait'].forEach(function(id){
   $(id).addEventListener('input',function(){S.best=null;update();if(S.loaded)autoBest();});});
+['rDownS','rUpS'].forEach(function(id){
+  $(id).addEventListener('input',function(){
+    syncRangeUI(true);S.best=null;update();
+  });
+});
+['rDown','rUp'].forEach(function(id){
+  $(id).addEventListener('input',function(){syncRangeUI(false);});
+});
+
 $('rebal').addEventListener('change',function(){
   if($('rebal').checked)LVHA.once('rebalance_enabled');
   $('rebalBody').hidden=!$('rebal').checked;
