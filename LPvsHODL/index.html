@@ -1674,16 +1674,28 @@ function setDaysAgo(d){
   $('date').value=iso(t);
   snapDate();
 }
+/* Exactly one chip is lit, ever. An exact match to the entry date wins; if the
+   date sits at the very start of the available history, the shortest chip that
+   still reaches that far back wins instead. Previously every chip long enough
+   to cover it was lit, so picking 1Y highlighted 1Y and 2Y together. */
 function syncChips(){
   var v=$('date').value;if(!v)return;
   var end=S.loaded?new Date(S.series[S.series.length-1].t*1000):new Date();
   var days=Math.round((end-Date.parse(v+'T00:00:00Z'))/86400000);
   var oldest=S.loaded?Math.round((end-new Date(S.series[0].t*1000))/86400000):null;
-  Array.prototype.forEach.call($('dateChips').children,function(c){
-    var d=c.getAttribute('data-days'),on;
-    on=(Math.abs(days-parseFloat(d))<=2)||
-       (oldest!==null&&Math.abs(days-oldest)<=2&&parseFloat(d)>=oldest);
-    c.classList.toggle('on',on);});
+
+  var kids=Array.prototype.slice.call($('dateChips').children);
+  var exact=null,atStart=null;
+  kids.forEach(function(c){
+    if(c.hidden)return;
+    var d=parseFloat(c.getAttribute('data-days'));
+    if(!isFinite(d))return;
+    if(Math.abs(days-d)<=2&&(!exact||d<parseFloat(exact.getAttribute('data-days'))))exact=c;
+    if(oldest!==null&&Math.abs(days-oldest)<=2&&d>=oldest&&
+       (!atStart||d<parseFloat(atStart.getAttribute('data-days'))))atStart=c;
+  });
+  var win=exact||atStart;
+  kids.forEach(function(c){c.classList.toggle('on',c===win);});
 }
 function snapDate(){
   if(S.loaded){
