@@ -1462,7 +1462,7 @@ var LVH = (function () {
 var $=function(i){return document.getElementById(i);};
 var S={series:[],loaded:false,dex:'',chain:'',addr:'',label:'',created:null,
   unsupported:false,naReason:'',feeKnown:true,modelSure:false,mode:'bounds',best:null,prevRange:null,source:'',
-  pending:null,pendingFiat:0,last:null,exact:null,exactState:'off',longDays:null};
+  pending:null,pendingFiat:0,last:null,exact:null,exactState:'off',longDays:null,pinned:null};
 
 S.depositUSD=10000;
 
@@ -1643,6 +1643,7 @@ function fetchPool(chain,addr){
   })
   .then(function(h){
     S.series=h.series;S.source=h.source;
+    pinStables();
     if(h.fee&&!S.feeKnown){$('fee').value=h.fee;S.feeKnown=true;}
     if(h.created)S.created=new Date(h.created*1000);
     S.loaded=S.series.length>2;
@@ -2301,6 +2302,7 @@ function loadLongHistory(days,btn){
       if(ser.length<30)throw new Error('thin');
 
       S.series=ser;
+      pinStables();
       S.exact=j;                       /* the same rows carry the fee record */
       S.exactState='on';
       S.longDays=days;
@@ -2316,6 +2318,45 @@ function loadLongHistory(days,btn){
       el.textContent='Couldn\u2019t load the longer history for this pool \u2014 staying on the six-month view.';
     })
     .then(function(){ if(btn)btn.textContent=btn.textContent.replace('\u2026',''); });
+}
+
+
+/* ---------------------------------------------------------------------------
+   Stablecoin prices.
+
+   Token prices are worked out from pool trades, so a dollar-pegged coin
+   arrives as $1.0023 rather than $1. Every figure on the page is converted
+   through those prices, which sprinkles a fake few-tenths-of-a-percent move
+   through the impermanent loss, the hold comparison and the net result — and
+   makes "stayed in cash" disagree with "all in USDC" when they plainly
+   should not.
+
+   So a recognised dollar stablecoin is priced at exactly $1 — but only while
+   it is within 2% of a dollar. Real depegs happen (USDC touched $0.88 in
+   March 2023) and those pass through untouched, because a depeg is exactly
+   the sort of thing someone would come here to measure.
+   --------------------------------------------------------------------------- */
+var STABLE_RE=/^(USDC|USDC\.E|USDBC|USDT|USDT0|USDT\.E|DAI|TUSD|USDP|PYUSD|FDUSD|LUSD|GUSD|USDD|FRAX|SUSD|USDS|USDE|BUSD|CRVUSD|USDL|USDX|DOLA|MIM|USDGLO)$/;
+function isStable(sym){return STABLE_RE.test(String(sym||'').trim().toUpperCase());}
+function pinPrice(p,sym){
+  return (isStable(sym)&&isFinite(p)&&p>0&&Math.abs(p-1)<=0.02)?1:p;
+}
+/* Rewrites the loaded history in place; returns how many rows it touched. */
+function pinStables(){
+  S.pinned=null;
+  if(!S.series||!S.series.length)return 0;
+  var sa=$('symA').value,sb=$('symB').value;
+  if(!isStable(sa)&&!isStable(sb))return 0;
+  var touched=0,names=[];
+  S.series.forEach(function(d){
+    var a=pinPrice(d.pa,sa),b=pinPrice(d.pb,sb);
+    if(a!==d.pa||b!==d.pb)touched++;
+    d.pa=a;d.pb=b;
+  });
+  if(isStable(sa))names.push(sa);
+  if(isStable(sb))names.push(sb);
+  if(touched)S.pinned=names.join(' and ');
+  return touched;
 }
 
 function renderWhatIf(m){
@@ -2478,6 +2519,10 @@ function update(){
   $('ratioLine').innerHTML='1 '+esc(m.symA)+' = <b>'+LVH.ratioNum(m.r0)+'</b> '+esc(m.symB)+
     ' at entry \u2192 <b>'+LVH.ratioNum(m.r1)+'</b> today <span class="'+
     (mv>=0?'pos':'neg')+'">('+(mv>=0?'+':'\u2212')+Math.abs(mv).toFixed(2)+'%)</span>';
+  if(S.pinned){
+    $('ratioLine').innerHTML+='<span style="color:var(--soft)"> \u00b7 '+esc(S.pinned)+
+      ' priced at exactly $1</span>';
+  }
 
   if(S.unsupported){
     $('ledger').hidden=true;$('shareFlag').hidden=true;
