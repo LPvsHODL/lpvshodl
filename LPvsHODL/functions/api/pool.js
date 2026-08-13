@@ -34,7 +34,7 @@ const SUBGRAPHS = {
      maintained by Uniswap Labs. Confirm a deployment is actively indexing
      before relying on it. */
   ethereum: '5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV',
-  base:     null,   // find on The Graph Explorer, then paste here
+  base:     'HMuAwufqZ1YCRmzL2SfHTVkzZovC9VL2UAKhjvRqKiR1',
   arbitrum: null,
   optimism: null,
   polygon:  null,
