@@ -47,12 +47,17 @@ const PAGE = 1000;          /* The Graph caps entities per request */
 const MAX_PAGES = 8;        /* 8000 hours ~ 11 months, plenty for a 6mo window */
 const CACHE_SECONDS = 900;  /* pool data changes hourly; 15 min is generous */
 
+/* Only successful payloads are cacheable. An error told the browser to
+   remember it for fifteen minutes once, which made a fixed deployment look
+   broken — errors now carry no-store so a retry always hits fresh code. */
 function json(body, status, extraHeaders) {
+  var ok = !body || !body.error;
   return new Response(JSON.stringify(body), {
     status: status || 200,
     headers: Object.assign({
       'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'public, max-age=' + CACHE_SECONDS
+      'cache-control': ok ? ('public, max-age=' + CACHE_SECONDS)
+                          : 'no-store, max-age=0'
     }, extraHeaders || {})
   });
 }
