@@ -66,6 +66,7 @@ const POOL_QUERY = `
 query Pool($id: ID!) {
   pool(id: $id) {
     id
+    createdAtTimestamp
     feeTier
     liquidity
     tick
@@ -96,6 +97,42 @@ query Hours($pool: String!, $after: Int!) {
   }
 }`;
 
+const DAYS_QUERY = `
+query Days($pool: String!, $after: Int!) {
+  poolDayDatas(
+    first: 1000
+    orderBy: date
+    orderDirection: asc
+    where: { pool: $pool, date_gt: $after }
+  ) {
+    date
+    tick
+    liquidity
+    sqrtPrice
+    feeGrowthGlobal0X128
+    feeGrowthGlobal1X128
+    volumeUSD
+    tvlUSD
+    feesUSD
+  }
+}`;
+
+/* Daily dollar prices for each token. The hourly pool data carries the price of
+   one token against the other but not against the dollar, and a backtest that
+   reaches back years needs both. */
+const TOKEN_DAYS_QUERY = `
+query TokenDays($token: String!, $after: Int!) {
+  tokenDayDatas(
+    first: 1000
+    orderBy: date
+    orderDirection: asc
+    where: { token: $token, date_gt: $after }
+  ) {
+    date
+    priceUSD
+  }
+}`;
+
 async function gql(endpoint, query, variables) {
   const res = await fetch(endpoint, {
     method: 'POST',
@@ -108,6 +145,18 @@ async function gql(endpoint, query, variables) {
     throw new Error('graphql: ' + (body.errors[0].message || 'unknown'));
   }
   return body.data;
+}
+
+async function pageAll(endpoint, query, key, vars, cursorField, maxPages) {
+  let out = [], after = vars.after || 0;
+  for (let i = 0; i < maxPages; i++) {
+    const d = await gql(endpoint, query, Object.assign({}, vars, { after: after }));
+    const batch = (d && d[key]) || [];
+    out = out.concat(batch);
+    if (batch.length < PAGE) break;
+    after = parseInt(batch[batch.length - 1][cursorField], 10);
+  }
+  return out;
 }
 
 export async function onRequestGet(context) {
@@ -141,23 +190,38 @@ export async function onRequestGet(context) {
     const meta = await gql(endpoint, POOL_QUERY, { id: address });
     if (!meta || !meta.pool) return json({ error: 'pool_not_found' }, 200);
 
-    /* Page through hourly snapshots using the timestamp as a cursor. Using
-       skip would drift if new hours land mid-fetch. */
-    let after = from > 0 ? from - 1 : 0;
-    let hours = [];
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const d = await gql(endpoint, HOURS_QUERY, { pool: address, after: after });
-      const batch = (d && d.poolHourDatas) || [];
-      hours = hours.concat(batch);
-      if (batch.length < PAGE) break;
-      after = parseInt(batch[batch.length - 1].periodStartUnix, 10);
+    /* Hourly is precise but heavy; daily is the only sane way to carry years of
+       history to a phone. The caller picks. Either way the cursor is the
+       timestamp, since skipping would drift if new rows land mid-fetch. */
+    const daily = (url.searchParams.get('span') || 'hour') === 'day';
+    const after0 = from > 0 ? from - 1 : 0;
+
+    let rows, prices0 = null, prices1 = null;
+    if (daily) {
+      const jobs = [
+        pageAll(endpoint, DAYS_QUERY, 'poolDayDatas', { pool: address, after: after0 }, 'date', 4),
+        pageAll(endpoint, TOKEN_DAYS_QUERY, 'tokenDayDatas',
+                { token: meta.pool.token0.id, after: after0 }, 'date', 4),
+        pageAll(endpoint, TOKEN_DAYS_QUERY, 'tokenDayDatas',
+                { token: meta.pool.token1.id, after: after0 }, 'date', 4)
+      ];
+      const [d0, p0, p1] = await Promise.all(jobs);
+      rows = d0;
+      prices0 = {}; p0.forEach(function (r) { prices0[r.date] = Number(r.priceUSD); });
+      prices1 = {}; p1.forEach(function (r) { prices1[r.date] = Number(r.priceUSD); });
+    } else {
+      rows = await pageAll(endpoint, HOURS_QUERY, 'poolHourDatas',
+                           { pool: address, after: after0 }, 'periodStartUnix', MAX_PAGES);
     }
+    const hours = rows;
 
     const payload = {
       source: 'subgraph',
       chain: chain,
+      span: daily ? 'day' : 'hour',
       pool: {
         address: meta.pool.id,
+        createdAt: Number(meta.pool.createdAtTimestamp) || 0,
         feeTier: Number(meta.pool.feeTier),
         tick: meta.pool.tick === null ? null : Number(meta.pool.tick),
         liquidity: meta.pool.liquidity,
@@ -176,8 +240,9 @@ export async function onRequestGet(context) {
       /* Ascending. Each entry is the state at the END of that hour, which is
          what makes consecutive differences meaningful. */
       hours: hours.map(function (h) {
-        return {
-          t: Number(h.periodStartUnix),
+        const stamp = daily ? Number(h.date) : Number(h.periodStartUnix);
+        const row = {
+          t: stamp,
           tick: h.tick === null ? null : Number(h.tick),
           liquidity: h.liquidity,
           feeGrowthGlobal0X128: h.feeGrowthGlobal0X128,
@@ -186,7 +251,16 @@ export async function onRequestGet(context) {
           tvlUSD: Number(h.tvlUSD),
           feesUSD: Number(h.feesUSD)
         };
-      }).filter(function (h) { return h.tick !== null; })
+        if (daily) {
+          row.p0 = prices0[h.date] || 0;   /* token0 in dollars that day */
+          row.p1 = prices1[h.date] || 0;
+        }
+        return row;
+      }).filter(function (h) {
+        if (h.tick === null) return false;
+        if (daily && !(h.p0 > 0 && h.p1 > 0)) return false;  /* unusable without prices */
+        return true;
+      })
     };
 
     const out = json(payload);
