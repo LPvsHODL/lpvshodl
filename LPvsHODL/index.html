@@ -489,6 +489,31 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
 .rngbox .ends{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;
   font-size:10px;color:var(--soft);margin-top:-4px}
 
+
+/* ---- two-handle band slider ---- */
+.dual{position:relative;height:36px;margin:2px 0 0}
+.dual .dtrack{position:absolute;top:14px;left:11px;right:11px;height:8px;
+  border-radius:99px;background:var(--rule)}
+.dual .dfill{position:absolute;top:0;bottom:0;border-radius:99px;background:var(--accent);opacity:.85}
+.dual input{position:absolute;top:0;left:0;width:100%;height:36px;margin:0;
+  background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.dual input:focus{outline:none}
+.dual input::-webkit-slider-runnable-track{height:8px;background:transparent;border:0}
+.dual input::-webkit-slider-thumb{pointer-events:auto;-webkit-appearance:none;appearance:none;
+  width:24px;height:24px;border-radius:50%;background:var(--card);border:4px solid var(--accent);
+  box-shadow:0 1px 5px rgba(0,0,0,.45);margin-top:-8px;cursor:grab;transition:transform .08s ease}
+.dual input::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.14)}
+.dual input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--accentSoft)}
+.dual input::-moz-range-track{height:8px;background:transparent;border:0}
+.dual input::-moz-range-thumb{pointer-events:auto;width:20px;height:20px;border-radius:50%;
+  background:var(--card);border:4px solid var(--accent);box-shadow:0 1px 5px rgba(0,0,0,.45);cursor:grab}
+.dual input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px var(--accentSoft)}
+.bandhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:18px 0 0}
+.bandhead .lab{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--soft)}
+.bandhead .vals{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink)}
+.bandhead .vals b{color:var(--accent);font-weight:600}
+
 /* ---- which fee source produced the number ---- */
 .srcbadge{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:5px 12px;
   font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.02em;margin-bottom:12px}
@@ -789,6 +814,19 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
         <div class="quick" id="wiQuick"></div>
         <div class="sliderwrap"><input class="rng" id="wiSlider" type="range" min="0" max="1000" value="500" aria-label="Price"></div>
         <div class="ends"><span id="wiLow"></span><span id="wiHigh"></span></div>
+
+        <div id="bandWrap" hidden>
+          <div class="bandhead">
+            <span class="lab">Your price range &mdash; drag either end</span>
+            <span class="vals"><b id="bandLoTxt">&mdash;</b> to <b id="bandHiTxt">&mdash;</b></span>
+          </div>
+          <div class="dual" id="bandDual">
+            <div class="dtrack"><div class="dfill" id="bandFill"></div></div>
+            <input id="bandLo" type="range" min="0" max="1000" step="1" value="300" aria-label="Range lower bound">
+            <input id="bandHi" type="range" min="0" max="1000" step="1" value="700" aria-label="Range upper bound">
+          </div>
+          <div class="ends" id="bandEnds"><span id="bandEndLo"></span><span id="bandEndHi"></span></div>
+        </div>
 
         <div class="biglab" id="wiPriceLab">Price</div>
         <div class="big" id="wiPrice">&mdash;</div>
@@ -2137,6 +2175,70 @@ function syncRangeUI(fromSlider){
   }else{$('rDownPx').textContent='\u2014';$('rUpPx').textContent='\u2014';}
 }
 
+
+/* ---------------------------------------------------------------------------
+   Two-handle band slider.
+
+   HTML has no native two-ended range, so this is two ordinary sliders sharing
+   one track. Each input is transparent and ignores pointer events except on
+   its own thumb, which is what lets both handles be grabbed independently.
+
+   It works in price, not percentages, so the handles line up with what the
+   chart shows. Its span is deliberately wider than the chart's: a band can
+   legitimately reach down to a twentieth of today's price, and the handle has
+   to be able to get there.
+   --------------------------------------------------------------------------- */
+var BAND={lo:0,hi:0,pa:0};
+
+function bandPrice(v){return BAND.lo*Math.pow(BAND.hi/BAND.lo,v/1000);}
+function bandPos(pa){
+  var t=Math.log(pa/BAND.lo)/Math.log(BAND.hi/BAND.lo);
+  return Math.max(0,Math.min(1000,Math.round(t*1000)));
+}
+
+function bandPaint(){
+  var a=+$('bandLo').value, b=+$('bandHi').value;
+  var f=$('bandFill');
+  f.style.left=(a/10)+'%';
+  f.style.width=Math.max(0,(b-a)/10)+'%';
+  $('bandLoTxt').textContent=money(bandPrice(a));
+  $('bandHiTxt').textContent=money(bandPrice(b));
+}
+
+/* Handles -> the position's percentages, then straight into the normal
+   recalculation so every number and the chart follow along. */
+function bandCommit(){
+  var m=WI.m;if(!m||!(m.pa1>0))return;
+  var a=+$('bandLo').value,b=+$('bandHi').value;
+  if(b-a<8){                                   /* never let them cross or pinch shut */
+    if(document.activeElement===$('bandHi'))a=Math.max(0,b-8); else b=Math.min(1000,a+8);
+    $('bandLo').value=a;$('bandHi').value=b;
+  }
+  var loPx=bandPrice(a),hiPx=bandPrice(b);
+  var down=Math.max(1,Math.min(95,(1-loPx/m.pa1)*100));
+  var up  =Math.max(1,Math.min(300,(hiPx/m.pa1-1)*100));
+  $('rDown').value=+down.toFixed(1);
+  $('rUp').value=+up.toFixed(1);
+  bandPaint();
+  syncRangeUI(false);
+  S.best=null;update();
+  LVHA.once('band_dragged');
+}
+
+/* Point the handles at wherever the range currently is. */
+function bandSync(m){
+  if(!m||!m.cl||!(m.pa1>0)){$('bandWrap').hidden=true;return;}
+  BAND.pa=m.pa1;
+  BAND.lo=m.pa1/25;BAND.hi=m.pa1*6;
+  var loPx=m.pa1*(1-n('rDown')/100), hiPx=m.pa1*(1+n('rUp')/100);
+  $('bandLo').value=bandPos(Math.max(BAND.lo,loPx));
+  $('bandHi').value=bandPos(Math.min(BAND.hi,hiPx));
+  $('bandEndLo').textContent=money(BAND.lo);
+  $('bandEndHi').textContent=money(BAND.hi);
+  bandPaint();
+  $('bandWrap').hidden=false;
+}
+
 function renderWhatIf(m){
   if(!m||!(m.pa1>0)||!(m.V0>0)){$('wiCard').hidden=true;return;}
   WI.m=m;
@@ -2171,6 +2273,7 @@ function renderWhatIf(m){
   });
 
   $('wiSlider').value=wiSlider(WI.pa);paintRng($('wiSlider'));
+  bandSync(m);
   $('wiBandKey').hidden=!m.cl;
   $('wiCard').hidden=false;
   wiPaint();
@@ -2592,6 +2695,20 @@ function setMode(mo){
     syncValues();S.best=null;update();if(S.loaded)autoBest();});});
 ['symA','symB','pa0','pb0','pa1','pb1','tvl','gas','rDown','rUp','width','drift','rebalCost','rebalWait'].forEach(function(id){
   $(id).addEventListener('input',function(){S.best=null;update();if(S.loaded)autoBest();});});
+['bandLo','bandHi'].forEach(function(id){
+  $(id).addEventListener('input',bandCommit);
+});
+
+/* Drag the price. Bound once here rather than inside renderWhatIf, which runs
+   on every repaint and would stack a fresh listener each time. */
+$('wiSlider').addEventListener('input',function(){
+  if(!WI.m)return;
+  WI.pa=wiPrice(+this.value);
+  paintRng(this);
+  wiPaint();
+  LVHA.once('whatif_used');
+});
+
 ['rDownS','rUpS'].forEach(function(id){
   $(id).addEventListener('input',function(){
     syncRangeUI(true);S.best=null;update();
