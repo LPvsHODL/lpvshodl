@@ -147,6 +147,26 @@ async function gql(endpoint, query, variables) {
   return body.data;
 }
 
+/* Daily rows are stamped either as a unix timestamp or as a day number
+   (timestamp / 86400), depending on which build of the subgraph is deployed.
+   Filtering with the wrong one silently matches nothing, so try the timestamp
+   first and fall back to the day number, then normalise whatever comes back to
+   a plain timestamp. */
+async function tryDays(endpoint, query, key, idVars, afterTs, maxPages) {
+  let rows = await pageAll(endpoint, query, key,
+      Object.assign({}, idVars, { after: afterTs }), 'date', maxPages);
+  if (rows.length) return { rows: rows, unit: 'ts' };
+
+  rows = await pageAll(endpoint, query, key,
+      Object.assign({}, idVars, { after: Math.floor(afterTs / 86400) }), 'date', maxPages);
+  return { rows: rows, unit: 'day' };
+}
+function dayStart(v, unit) {
+  const n = Number(v);
+  const ts = (unit === 'day' || n < 1000000) ? n * 86400 : n;
+  return Math.floor(ts / 86400) * 86400;
+}
+
 async function pageAll(endpoint, query, key, vars, cursorField, maxPages) {
   let out = [], after = vars.after || 0;
   for (let i = 0; i < maxPages; i++) {
@@ -196,19 +216,17 @@ export async function onRequestGet(context) {
     const daily = (url.searchParams.get('span') || 'hour') === 'day';
     const after0 = from > 0 ? from - 1 : 0;
 
-    let rows, prices0 = null, prices1 = null;
+    let rows, prices0 = null, prices1 = null, dayUnit = 'ts';
     if (daily) {
-      const jobs = [
-        pageAll(endpoint, DAYS_QUERY, 'poolDayDatas', { pool: address, after: after0 }, 'date', 4),
-        pageAll(endpoint, TOKEN_DAYS_QUERY, 'tokenDayDatas',
-                { token: meta.pool.token0.id, after: after0 }, 'date', 4),
-        pageAll(endpoint, TOKEN_DAYS_QUERY, 'tokenDayDatas',
-                { token: meta.pool.token1.id, after: after0 }, 'date', 4)
-      ];
-      const [d0, p0, p1] = await Promise.all(jobs);
-      rows = d0;
-      prices0 = {}; p0.forEach(function (r) { prices0[r.date] = Number(r.priceUSD); });
-      prices1 = {}; p1.forEach(function (r) { prices1[r.date] = Number(r.priceUSD); });
+      const [dd, t0d, t1d] = await Promise.all([
+        tryDays(endpoint, DAYS_QUERY, 'poolDayDatas', { pool: address }, after0, 4),
+        tryDays(endpoint, TOKEN_DAYS_QUERY, 'tokenDayDatas', { token: meta.pool.token0.id }, after0, 4),
+        tryDays(endpoint, TOKEN_DAYS_QUERY, 'tokenDayDatas', { token: meta.pool.token1.id }, after0, 4)
+      ]);
+      rows = dd.rows;
+      dayUnit = dd.unit;
+      prices0 = {}; t0d.rows.forEach(function (r) { prices0[dayStart(r.date, t0d.unit)] = Number(r.priceUSD); });
+      prices1 = {}; t1d.rows.forEach(function (r) { prices1[dayStart(r.date, t1d.unit)] = Number(r.priceUSD); });
     } else {
       rows = await pageAll(endpoint, HOURS_QUERY, 'poolHourDatas',
                            { pool: address, after: after0 }, 'periodStartUnix', MAX_PAGES);
@@ -239,8 +257,9 @@ export async function onRequestGet(context) {
       },
       /* Ascending. Each entry is the state at the END of that hour, which is
          what makes consecutive differences meaningful. */
+      rawDayRows: daily ? rows.length : undefined,
       hours: hours.map(function (h) {
-        const stamp = daily ? Number(h.date) : Number(h.periodStartUnix);
+        const stamp = daily ? dayStart(h.date, dayUnit) : Number(h.periodStartUnix);
         const row = {
           t: stamp,
           tick: h.tick === null ? null : Number(h.tick),
@@ -252,8 +271,8 @@ export async function onRequestGet(context) {
           feesUSD: Number(h.feesUSD)
         };
         if (daily) {
-          row.p0 = prices0[h.date] || 0;   /* token0 in dollars that day */
-          row.p1 = prices1[h.date] || 0;
+          row.p0 = prices0[stamp] || 0;   /* token0 in dollars that day */
+          row.p1 = prices1[stamp] || 0;
         }
         return row;
       }).filter(function (h) {
