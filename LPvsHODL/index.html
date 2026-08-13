@@ -624,11 +624,15 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     <div class="pf">
       <label for="date">Entry date</label>
       <input id="date" type="date">
+      <p class="hint" id="spanNote" hidden style="margin:8px 0 0"></p>
       <div class="chips" id="dateChips">
         <button type="button" class="chip" data-days="7">1W</button>
         <button type="button" class="chip" data-days="30">1M</button>
         <button type="button" class="chip" data-days="91">3M</button>
         <button type="button" class="chip on" data-days="182">6M</button>
+        <button type="button" class="chip" data-days="365" id="chip1y" hidden>1Y</button>
+        <button type="button" class="chip" data-days="730" id="chip2y" hidden>2Y</button>
+        <button type="button" class="chip" data-days="max" id="chipMax" hidden>All</button>
       </div>
     </div>
     <div class="pf">
@@ -1458,7 +1462,7 @@ var LVH = (function () {
 var $=function(i){return document.getElementById(i);};
 var S={series:[],loaded:false,dex:'',chain:'',addr:'',label:'',created:null,
   unsupported:false,naReason:'',feeKnown:true,modelSure:false,mode:'bounds',best:null,prevRange:null,source:'',
-  pending:null,pendingFiat:0,last:null,exact:null,exactState:'off'};
+  pending:null,pendingFiat:0,last:null,exact:null,exactState:'off',longDays:null};
 
 S.depositUSD=10000;
 
@@ -1816,7 +1820,7 @@ var EXACT_CHAINS={eth:'ethereum',ethereum:'ethereum',base:'base',
 /* Fetch the pool's own hourly fee record. Failure is fine and silent — the
    estimate carries on exactly as before. */
 function loadExact(){
-  S.exact=null;S.exactState='off';
+  S.exact=null;S.exactState='off';S.longDays=null;longSpanNote();
   if(!FEEQ.ok||!S.loaded||!S.chain||!S.addr)return;
   var chain=EXACT_CHAINS[String(S.chain).toLowerCase()];
   if(!chain)return;
@@ -1829,7 +1833,7 @@ function loadExact(){
     .then(function(j){
       if(S.addr!==want)return;                     /* a different pool loaded meanwhile */
       if(!j||j.error||!j.hours||j.hours.length<24){S.exactState='off';S.exact=null;return;}
-      S.exact=j;S.exactState='on';update();
+      S.exact=j;S.exactState='on';offerLongSpans();update();
     })
     .catch(function(){S.exactState='off';S.exact=null;});
 }
@@ -2239,6 +2243,81 @@ function bandSync(m){
   $('bandWrap').hidden=false;
 }
 
+
+/* ---------------------------------------------------------------------------
+   Longer history.
+
+   The six-month wall was the price feed's, not the pool's. The pool's own
+   record starts the day it was created. Beyond a year we switch from hourly to
+   daily rows — two years of hourly data is several megabytes and daily is a
+   few hundred rows — and accept that daily readings blur exactly when price
+   crossed a band edge. That matters for narrow ranges, so the page says so.
+   --------------------------------------------------------------------------- */
+function longSpanNote(){
+  var el=$('spanNote');
+  if(!S.longDays){el.hidden=true;return;}
+  el.hidden=false;
+  el.innerHTML='Reading the pool\u2019s own daily record instead of the six-month price feed. '+
+    'Daily readings can\u2019t pinpoint the moment price crossed your range \u2014 measured against '+
+    'hourly data that flatters a &plusmn;5% band by about 3%, and wider bands by almost nothing.';
+}
+
+/* Show the longer options only when the pool is actually old enough. */
+function offerLongSpans(){
+  var made=(S.exact&&S.exact.pool&&S.exact.pool.createdAt)||0;
+  var haveDays=made? (Date.now()/1000-made)/86400 : 0;
+  $('chip1y').hidden = haveDays<200;
+  $('chip2y').hidden = haveDays<400;
+  $('chipMax').hidden= haveDays<400;
+}
+
+function loadLongHistory(days,btn){
+  var made=(S.exact&&S.exact.pool&&S.exact.pool.createdAt)||0;
+  var chain=EXACT_CHAINS[String(S.chain).toLowerCase()];
+  if(!chain||!S.addr){return;}
+  var from=(days==='max')?Math.max(0,made-86400)
+                         :Math.floor(Date.now()/1000-days*86400);
+  var want=S.addr;
+  if(btn)btn.textContent=btn.textContent+'\u2026';
+  fetch('/api/pool?span=day&chain='+encodeURIComponent(chain)+
+        '&address='+encodeURIComponent(S.addr)+'&from='+from)
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(S.addr!==want)return;
+      if(!j||j.error||!j.hours||j.hours.length<30)throw new Error('thin');
+
+      /* Keep whichever token the page already calls A, by checking which way
+         round the prices match rather than trusting symbols. */
+      var last=j.hours[j.hours.length-1];
+      var pa1=n('pa1'),pb1=n('pb1');
+      var direct=Math.abs((last.p0/last.p1)/(pa1/pb1)-1);
+      var inverse=Math.abs((last.p1/last.p0)/(pa1/pb1)-1);
+      var aIs0=direct<=inverse;
+
+      var ser=j.hours.map(function(h){
+        return {t:h.t, pa:aIs0?h.p0:h.p1, pb:aIs0?h.p1:h.p0,
+                vol:h.volumeUSD, tvl:h.tvlUSD};
+      }).filter(function(d){return d.pa>0&&d.pb>0;});
+      if(ser.length<30)throw new Error('thin');
+
+      S.series=ser;
+      S.exact=j;                       /* the same rows carry the fee record */
+      S.exactState='on';
+      S.longDays=days;
+      S.best=null;
+      setDaysAgo(days==='max'?1e6:days);
+      longSpanNote();
+      update();
+      LVHA.once('long_history_used');
+    })
+    .catch(function(){
+      S.longDays=null;longSpanNote();
+      var el=$('spanNote');el.hidden=false;
+      el.textContent='Couldn\u2019t load the longer history for this pool \u2014 staying on the six-month view.';
+    })
+    .then(function(){ if(btn)btn.textContent=btn.textContent.replace('\u2026',''); });
+}
+
 function renderWhatIf(m){
   if(!m||!(m.pa1>0)||!(m.V0>0)){$('wiCard').hidden=true;return;}
   WI.m=m;
@@ -2567,7 +2646,8 @@ function update(){
   var sb=$('srcBadge');
   if(m.feeSrc==='exact'){
     sb.hidden=false;sb.className='srcbadge exact';
-    sb.innerHTML='\u25cf <b>Real fees</b> \u00b7 read from the pool\u2019s own record, not estimated';
+    sb.innerHTML='\u25cf <b>Real fees</b> \u00b7 what the pool paid liquidity providers, '+
+      'after the protocol\u2019s cut \u2014 advertised pool rates are the figure before it';
   }else if(S.exactState==='loading'){
     sb.hidden=false;sb.className='srcbadge est';
     sb.innerHTML='\u25cb Loading the pool\u2019s real fee record\u2026';
@@ -2759,7 +2839,9 @@ Array.prototype.forEach.call($('dateChips').children,function(b){
   b.addEventListener('click',function(){
     Array.prototype.forEach.call($('dateChips').children,function(c){c.classList.remove('on');});
     b.classList.add('on');
-    setDaysAgo(parseFloat(b.getAttribute('data-days')));});});
+    var raw=b.getAttribute('data-days');
+    if(raw==='max'||parseFloat(raw)>200){loadLongHistory(raw==='max'?'max':parseFloat(raw),b);return;}
+    setDaysAgo(parseFloat(raw));});});
 Array.prototype.forEach.call($('modeChips').children,function(b){
   b.addEventListener('click',function(){
     setMode(b.getAttribute('data-mode'));
