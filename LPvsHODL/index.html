@@ -1882,10 +1882,16 @@ function loadExact(){
     .then(function(r){return r.json();})
     .then(function(j){
       if(S.addr!==want)return;                     /* a different pool loaded meanwhile */
-      if(!j||j.error||!j.hours||j.hours.length<24){S.exactState='off';S.exact=null;return;}
+      if(!j||j.error||!j.hours||j.hours.length<24){
+        /* Repaint on failure too. Without this the badge sits on "Loading the
+           pool's real fee record" for good, next to an estimate that has already
+           given up on it. */
+        S.exactState='off';S.exact=null;update();return;}
       S.exact=j;S.exactState='on';offerLongSpans();update();
     })
-    .catch(function(){S.exactState='off';S.exact=null;});
+    .catch(function(){
+      if(S.addr!==want)return;
+      S.exactState='off';S.exact=null;update();});
 }
 
 /* Work out how the site's token A/B line up with the pool's token0/token1 by
@@ -2815,16 +2821,19 @@ function update(){
 --------------------------------------------------------------------------- */
 function renderEstWarn(m){
   var w=$('estWarn');
-  if(m.feeSrc==='exact'){w.hidden=true;return;}
+  /* Exact numbers need no warning, and while the record is still being fetched
+     the badge above already says so — showing "we couldn't read it" next to
+     "loading it" tells the reader two different things at once. */
+  if(m.feeSrc==='exact'||S.exactState==='loading'){w.hidden=true;return;}
   w.hidden=false;
   w.innerHTML='<strong>The fee figure here is an estimate.</strong> '+
     (m.reOn
       ? 'Re-centring changes the position part-way through, which the pool\u2019s own fee record can\u2019t describe, so this falls back to the estimate. '
-      : 'We couldn\u2019t read this pool\u2019s own fee record, so this splits the pool\u2019s trading fees by your share of its total value \u2014 the method every other calculator uses. ')+
+      : 'This pool\u2019s own fee record didn\u2019t come back, so this splits the pool\u2019s trading fees by your share of its total value \u2014 the method every other calculator uses. ')+
     'It takes no account of how much liquidity is sitting near the trading price, which is what actually decides your cut. '+
     'On the pools we have checked against the real record it came out about <strong>9\u00d7 too high</strong> on a busy, tightly-managed pool and <strong>20\u00d7 too low</strong> on a neglected one. '+
     'The error runs in both directions and there is no correction factor, so read this as an order of magnitude, not a number to size a position against.'+
-    (m.reOn?'':' Ethereum and Base pools are read from the real record and show a green badge instead.');
+    (m.reOn?'':' Ethereum and Base pools are normally read from the real record and show a green badge instead \u2014 if you are on one of those, the record was unavailable this time and reloading may fix it.');
 }
 
 /* ---------------------------------------------------------------------------
