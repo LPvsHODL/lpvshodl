@@ -199,6 +199,9 @@ input[readonly]{background:var(--card2);color:var(--soft)}
 .row3{display:grid;grid-template-columns:.85fr 1fr 1fr;gap:9px;margin-bottom:10px}
 .field{min-width:0;margin-bottom:10px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.denomrow{align-items:center;gap:7px;margin:0 0 14px}
+.denomrow .dlab{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--soft);margin-right:2px}
 .chip{font-family:"IBM Plex Mono",monospace;font-size:11.5px;background:transparent;
   border:1px solid var(--rule);border-radius:99px;padding:5px 11px;color:var(--soft);cursor:pointer}
 .chip:hover{border-color:var(--accent);color:var(--accent)}
@@ -755,6 +758,8 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     <div class="headline" aria-live="polite">
       <p class="ratio" id="ratioLine"></p>
       <div id="srcBadge" hidden></div>
+      <div class="note badbox" id="estWarn" hidden style="margin:12px 0 14px"></div>
+      <div class="chips denomrow" id="denomRow" hidden></div>
       <div class="ledger" id="ledger" hidden>
         <div class="lrow"><span id="lCostLab">Cost of providing liquidity</span><b id="lCost">&mdash;</b></div>
         <div class="lrow"><span>Fees it paid you</span><b id="lFee">&mdash;</b></div>
@@ -765,6 +770,8 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
       <span class="hlabel" id="hLab">Better or worse than HODLing</span>
       <span class="hnum idle" id="hNum">Awaiting a pool</span>
       <p class="hnote" id="hNote">Paste a pool address above and hit Load.</p>
+      <p class="hnote" id="frNote" hidden></p>
+      <p class="hnote" id="denomNote" hidden></p>
       <button class="ghost bestbtn" id="restoreBest" type="button" hidden>Show the best range for this period</button>
       <div class="sharerow" id="shareRow" hidden>
         <button class="sharebtn" id="shareX" type="button">
@@ -978,6 +985,14 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     <details>
       <summary>What is impermanent loss in simple terms?</summary>
       <p>You put two tokens into a pool. One goes up a lot. The pool sells some of it on the way up and buys more of the other. When you withdraw, you have less of the winner and more of the loser than you started with. Impermanent loss is the value of that difference — the cost of having been automatically rebalanced.</p>
+    </details>
+    <details>
+      <summary>Can I see the result in ETH instead of dollars?</summary>
+      <p>Yes — there is a unit switch above the numbers that reads the whole comparison in either of the pool's own tokens. It is a display option, not a different calculation. Dividing both the pool result and the hold result by the same price cannot change which one is larger, so the winner is the same in every unit; only the size of the gap is expressed differently. If you want a genuinely different answer, change the <em>baseline</em> instead: the comparison table comes at it from holding each token on its own, holding an even split, and staying in cash.</p>
+    </details>
+    <details>
+      <summary>What is the full-range figure for?</summary>
+      <p>Every result here depends on the range you picked, which makes two pools impossible to compare head to head — a tight band in one pool and a wide band in another tell you nothing about which pool is better. Full range is the one setting everybody shares, so the tool also reports what this pool paid over the same window with no bounds at all. That is the number to hold up against another pool. It is not a recommendation to go full range; it is a common yardstick.</p>
     </details>
     <details>
       <summary>Does providing liquidity beat holding?</summary>
@@ -1489,6 +1504,43 @@ LVH.widenChains('chain');
 
 function n(id){var v=parseFloat($(id).value);return isFinite(v)?v:0;}
 var money=LVH.money,signed=LVH.signed,tok=LVH.tok,esc=LVH.esc,iso=LVH.iso;
+
+/* ---------------------------------------------------------------------------
+   Denomination.
+
+   Everything on this page is priced in dollars by default, which is a choice
+   rather than a neutral fact — plenty of people running an ETH pair think in
+   ETH. This lets the whole comparison be read in either of the pool's own
+   tokens instead.
+
+   It is a display option and nothing more. Dividing both the pool result and
+   the hold result by the same price cannot change which one is bigger, so the
+   ranking is identical in every unit. What does change the answer is the
+   baseline you compare against, which is the job of the baselines card.
+--------------------------------------------------------------------------- */
+var DENOM='lvh-denom';
+function denom(){var d=LVH.get(DENOM,'USD');return (d==='A'||d==='B')?d:'USD';}
+function setDenom(d){LVH.set(DENOM,(d==='A'||d==='B')?d:'USD');update();}
+/* Unit price of the chosen token, at the end of the window — 0 means dollars. */
+function denomPx(m){var d=denom();var p=(d==='A')?m.pa1:(d==='B')?m.pb1:0;return (p>0)?p:0;}
+function denomSym(m){var d=denom();return (d==='A')?m.symA:(d==='B')?m.symB:'';}
+/* Format a dollar figure in whichever unit is selected. */
+function dv(m,usd,dp){
+  var p=denomPx(m);
+  if(!p)return money(usd,null,dp);
+  return tok(usd/p)+' '+esc(denomSym(m));
+}
+function dsigned(m,usd){
+  var p=denomPx(m);
+  if(!p)return signed(usd);
+  var v=usd/p;
+  return (v>0?'+':(v<0?'\u2212':''))+tok(Math.abs(v))+' '+esc(denomSym(m));
+}
+function dabs(m,usd){
+  var p=denomPx(m);
+  if(!p)return money(Math.abs(usd));
+  return tok(Math.abs(usd)/p)+' '+esc(denomSym(m));
+}
 function setStatus(m,c){var s=$('status');s.innerHTML=m;s.className='status'+(c?' '+c:'');}
 function refreshFX(){LVH.loadFX($('date').value).then(function(){update();});}
 function readDeposit(){
@@ -2014,6 +2066,7 @@ function emptyState(){
   $('rangeNote').hidden=true;$('fxNote').hidden=true;$('depHint').textContent='';
   $('optbtn').disabled=true;$('optPanel').hidden=true;
   $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;$('srcBadge').hidden=true;
+  $('estWarn').hidden=true;$('denomRow').hidden=true;$('denomNote').hidden=true;$('frNote').hidden=true;
   advSummary();
 }
 
@@ -2161,9 +2214,9 @@ function syncRangeUI(fromSlider){
   if(!d||!ds)return;
   if(fromSlider){ d.value=ds.value; u.value=us.value; }
   else{
-    var dv=Math.max(1,Math.min(95,Math.round(n('rDown'))||1));
+    var dpc=Math.max(1,Math.min(95,Math.round(n('rDown'))||1));
     var uv=Math.max(1,Math.min(300,Math.round(n('rUp'))||1));
-    ds.value=dv; us.value=uv;
+    ds.value=dpc; us.value=uv;
   }
   $('rDownNow').textContent=ds.value;
   $('rUpNow').textContent=us.value;
@@ -2459,22 +2512,22 @@ function renderBases(m,total,gas){
   rows.forEach(function(r){
     var d=r.v-poolNet;
     h+='<div class="brow'+(r.me?' me':'')+'"><span class="lab">'+r.lab+
-      '<span class="sub">'+r.sub+'</span></span><span class="val">'+money(r.v)+
+      '<span class="sub">'+r.sub+'</span></span><span class="val">'+dv(m,r.v)+
       '</span><span class="dif '+(r.me?'':(d>0?'pos':(d<0?'neg':'')))+'">'+
-      (r.me?'\u2014':signed(d))+'</span></div>';
+      (r.me?'\u2014':dsigned(m,d))+'</span></div>';
   });
   $('bases').innerHTML=h;
 
   var nb=$('baseNote');
   if(win.me){
-    var dv=Date.parse(($('date').value||'')+'T00:00:00Z');
+    var entryMs=Date.parse(($('date').value||'')+'T00:00:00Z');
     nb.className='note';
     nb.innerHTML='<strong>The pool won.</strong> Nothing else you could have done with this money'+
-      (isFinite(dv)?' on '+LVH.niceDate(new Date(dv)):'')+' would have finished ahead of it \u2014 '+
+      (isFinite(entryMs)?' on '+LVH.niceDate(new Date(entryMs)):'')+' would have finished ahead of it \u2014 '+
       'fees more than paid for what the pool sold on your behalf.';
   }else{
     nb.className='note warnbox';
-    nb.innerHTML='<strong>'+win.lab+' would have finished '+money(win.v-poolNet)+' ahead.</strong> '+
+    nb.innerHTML='<strong>'+win.lab+' would have finished '+dv(m,win.v-poolNet)+' ahead.</strong> '+
       'That is the comparison worth sitting with: a pool can beat holding both tokens and still lose badly to '+
       'simply picking the one that went up. Hindsight makes that choice look obvious, and it never was.';
   }
@@ -2578,6 +2631,7 @@ function update(){
     $('ilNote').className='note mutbox';$('ilNote').textContent='Only the hold comparison is shown.';
     $('rangeNote').hidden=true;$('fxNote').hidden=true;$('feeFlag').hidden=true;$('aprFlag').hidden=true;
     $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;$('srcBadge').hidden=true;
+  $('estWarn').hidden=true;$('denomRow').hidden=true;$('denomNote').hidden=true;$('frNote').hidden=true;
     return;
   }
   $('naNote').hidden=true;
@@ -2626,18 +2680,18 @@ function update(){
 
   $('ledger').hidden=false;
   $('lCostLab').textContent=(cost<0?'Cost of providing liquidity':'Gain on the tokens themselves');
-  $('lCost').textContent=(cost<0?'\u2212':'+')+money(Math.abs(cost)).replace('-','');
+  $('lCost').textContent=(cost<0?'\u2212':'+')+dabs(m,cost);
   $('lCost').className=(cost<0?'neg':'pos');
-  $('lFee').textContent='+'+money(m.feeV);
+  $('lFee').textContent='+'+dv(m,m.feeV);
   $('lFee').className='pos';
   $('lGasRow').hidden=!(gas>0);
-  if(gas>0){$('lGas').textContent='\u2212'+money(gas);$('lGas').className='neg';}
-  $('lNet').textContent=signed(net);
+  if(gas>0){$('lGas').textContent='\u2212'+dv(m,gas);$('lGas').className='neg';}
+  $('lNet').textContent=dsigned(m,net);
   $('lNet').className=(net>=0?'pos':'neg');
   $('lNetLab').textContent='Net vs. HODLing'+(gas>0?'':', before gas');
 
   $('hLab').textContent='Net vs. HODLing';
-  $('hNum').textContent=signed(net);
+  $('hNum').textContent=dsigned(m,net);
   $('hNum').className='hnum '+(net>=0?'up':'down');
   $('hNote').textContent=(cost<0
       ? 'Being in the pool cost you '+money(Math.abs(cost))+' worth of tokens \u2014 it sold your winner as prices moved. Fees of '+money(m.feeV)
@@ -2649,15 +2703,15 @@ function update(){
   for(var vi=0;vi<vals.length;vi++)for(var vj=vi+1;vj<vals.length;vj++){
     var d1=Math.abs(vals[vi]-vals[vj]);
     if(d1>0&&d1<1&&Math.abs(vals[vi])>=1000)dp=2;}
-  $('posV').textContent=money(m.posV+m.feeV,null,dp);
+  $('posV').textContent=dv(m,m.posV+m.feeV,dp);
   $('posParts').innerHTML=
-    '<span>'+money(m.posV,null,dp)+' in tokens</span><span>+ '+money(m.feeV,null,dp)+' in fees</span>';
+    '<span>'+dv(m,m.posV,dp)+' in tokens</span><span>+ '+dv(m,m.feeV,dp)+' in fees</span>';
   bar('posBarA','posBarB',m.pA*m.pa1,m.pB*m.pb1);
   legs('posLegs',m.symA,m.symB,m.pA,m.pB,m.pA*m.pa1,m.pB*m.pb1);
-  $('feeV').textContent=money(m.feeV,null,dp);
+  $('feeV').textContent=dv(m,m.feeV,dp);
   bar('feeBarA','feeBarB',m.fA*m.pa1,m.fB*m.pb1);
   legs('feeLegs',m.symA,m.symB,m.fA,m.fB,m.fA*m.pa1,m.fB*m.pb1);
-  $('holdV').textContent=money(m.hold,null,dp);
+  $('holdV').textContent=dv(m,m.hold,dp);
   bar('holdBarA','holdBarB',m.holdA,m.holdB);
   legs('holdLegs',m.symA,m.symB,m.eA,m.eB,m.holdA,m.holdB);
 
@@ -2707,8 +2761,7 @@ function update(){
     $('rangeNote').innerHTML='Your position only earns while '+esc(m.symA)+' trades between <strong>'+
       money(m.lo*m.pb1)+'</strong> and <strong>'+money(m.hi*m.pb1)+'</strong>. It was inside that window <strong>'+
       pct.toFixed(0)+'%</strong> of the time'+(out>0?' \u2014 the other '+out+' days it earned nothing.':'.')+
-      (pct<100?'<br><br>Switch on re-centring in the range panel to see what chasing the price would have cost.':'')+
-      (m.feeSrc==='exact'?'':'<br><br>These fees are an estimate. This pool doesn\u2019t publish the record needed for the real figure, and the estimate can land well above or below it depending on how much liquidity sits near the trading price.');
+      (pct<100?'<br><br>Switch on re-centring in the range panel to see what chasing the price would have cost.':'');
   }else{
     $('rangeNote').className='note mutbox';
     $('rangeNote').textContent='This pool earns at every price, so there is no range to set. It never stops earning fees, but it also never concentrates them.';
@@ -2742,10 +2795,91 @@ function update(){
       (m.reOn?'re-centring can\u2019t use the real record':'no fee record for this pool')+
       ' \u2014 treat as a rough guide';
   }
+  renderEstWarn(m);
+  renderDenom(m);
+  renderFullRange(m);
   renderWhatIf(m);
   renderBases(m,total,gas);
   wireShare(m,net);
   renderSuggest(m,net);
+}
+
+/* ---------------------------------------------------------------------------
+   Estimate-mode warning.
+
+   The amber badge says "estimated" but not how wrong it can be. On the two
+   pools checked against the real record the same estimate ran roughly nine
+   times high on one and twenty times low on the other, so "rough guide" is
+   understating it. Anyone reading a number off a chain we cannot verify
+   deserves to be told that plainly, once, in a box they cannot miss.
+--------------------------------------------------------------------------- */
+function renderEstWarn(m){
+  var w=$('estWarn');
+  if(m.feeSrc==='exact'){w.hidden=true;return;}
+  w.hidden=false;
+  w.innerHTML='<strong>The fee figure here is an estimate.</strong> '+
+    (m.reOn
+      ? 'Re-centring changes the position part-way through, which the pool\u2019s own fee record can\u2019t describe, so this falls back to the estimate. '
+      : 'We couldn\u2019t read this pool\u2019s own fee record, so this splits the pool\u2019s trading fees by your share of its total value \u2014 the method every other calculator uses. ')+
+    'It takes no account of how much liquidity is sitting near the trading price, which is what actually decides your cut. '+
+    'On the pools we have checked against the real record it came out about <strong>9\u00d7 too high</strong> on a busy, tightly-managed pool and <strong>20\u00d7 too low</strong> on a neglected one. '+
+    'The error runs in both directions and there is no correction factor, so read this as an order of magnitude, not a number to size a position against.'+
+    (m.reOn?'':' Ethereum and Base pools are read from the real record and show a green badge instead.');
+}
+
+/* ---------------------------------------------------------------------------
+   Denomination toggle: dollars, or either of the pool's own tokens.
+--------------------------------------------------------------------------- */
+function renderDenom(m){
+  var row=$('denomRow'),note=$('denomNote');
+  var a=esc(m.symA||'A'),b=esc(m.symB||'B'),d=denom();
+  var ok=(m.pa1>0&&m.pb1>0);
+  if(!ok){row.hidden=true;note.hidden=true;return;}
+  row.hidden=false;
+  row.innerHTML='<span class="dlab">Show in</span>'+
+    '<button type="button" class="chip'+(d==='USD'?' on':'')+'" data-denom="USD">'+esc(LVH.fx.cur)+'</button>'+
+    '<button type="button" class="chip'+(d==='A'?' on':'')+'" data-denom="A">'+a+'</button>'+
+    '<button type="button" class="chip'+(d==='B'?' on':'')+'" data-denom="B">'+b+'</button>';
+  Array.prototype.forEach.call(row.querySelectorAll('button'),function(btn){
+    btn.addEventListener('click',function(){setDenom(btn.getAttribute('data-denom'));});
+  });
+
+  if(d==='USD'){note.hidden=true;return;}
+  var sym=esc(denomSym(m)),p=denomPx(m);
+  note.hidden=false;
+  note.innerHTML='Priced in '+sym+' at today\u2019s '+money(p)+'. The pool leaves you <strong>'+
+    tok((m.posV+m.feeV)/p)+' '+sym+'</strong> against <strong>'+tok(m.hold/p)+' '+sym+
+    '</strong> for holding what you put in. Changing the unit divides both sides by the same price, '+
+    'so it never changes which one is ahead \u2014 it only changes what the gap is measured in. '+
+    'If you want a different answer rather than a different unit, the baselines below compare against holding '+
+    esc(m.symA)+' or '+esc(m.symB)+' on its own.';
+}
+
+/* ---------------------------------------------------------------------------
+   Full-range yield.
+
+   Every result on this page depends on the range the user picked, which makes
+   two pools impossible to compare directly. Full range is the one setting
+   everybody shares, so re-running the same window with no bounds gives a
+   like-for-like figure across pools. Same fee source as the headline: the
+   pool's own record where we have it, the estimate otherwise.
+--------------------------------------------------------------------------- */
+function renderFullRange(m){
+  var el=$('frNote');
+  if(!m.cl||!(m.days>0)){el.hidden=true;return;}
+  var fr=run(m.down,m.up,false);
+  if(!fr||!isFinite(fr.apr)){el.hidden=true;return;}
+  el.hidden=false;
+  var same=(Math.abs(fr.apr-m.apr)<0.05);
+  el.innerHTML='<strong>At full range this pool paid about '+fr.apr.toFixed(1)+'% a year</strong> over the same window'+
+    (fr.feeSrc==='exact'?' on its own fee record':' (estimated)')+'. '+
+    (same
+      ? 'Your band earned much the same, which means it was wide enough to behave like a full-range position.'
+      : 'Your \u2212'+m.down+'% / +'+m.up+'% band earned '+m.apr.toFixed(1)+'% \u2014 '+
+        (m.apr>fr.apr
+          ? 'more, because concentrating buys more liquidity per dollar while price stays inside it.'
+          : 'less, because the band spent time outside the price or spread the same money too thinly.'))+
+    ' Full range is the only setting everyone shares, so it is the fairer number to hold up against another pool.';
 }
 
 var DOWNS=[1,2,3,5,7.5,10,15,20,25,30,40,50,60,70,80,90,95];
