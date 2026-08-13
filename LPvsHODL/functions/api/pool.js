@@ -112,6 +112,8 @@ query Days($pool: String!, $after: Int!) {
     feeGrowthGlobal0X128
     feeGrowthGlobal1X128
     volumeUSD
+    volumeToken0
+    volumeToken1
     tvlUSD
     feesUSD
   }
@@ -152,6 +154,36 @@ async function gql(endpoint, query, variables) {
    Filtering with the wrong one silently matches nothing, so try the timestamp
    first and fall back to the day number, then normalise whatever comes back to
    a plain timestamp. */
+/* Dollar-pegged coins, used as an anchor when a subgraph publishes no prices. */
+const STABLES = /^(USDC|USDC\.E|USDBC|USDT|USDT0|DAI|TUSD|USDP|PYUSD|FDUSD|LUSD|GUSD|USDD|FRAX|SUSD|USDS|BUSD|CRVUSD|DOLA|MIM)$/i;
+
+/* price of token1 measured in token0, decimals accounted for */
+function priceFromTick(tick, d0, d1) {
+  return Math.pow(1.0001, Number(tick)) * Math.pow(10, d0 - d1);
+}
+
+/* Some subgraphs — especially community builds — never populate daily token
+   prices. Rather than give up, fall back:
+     1. published prices, when they exist
+     2. a dollar stablecoin on one side anchors the other through the tick
+     3. failing that, the day's own trading: a swap's dollar value divided by
+        the tokens that moved is the price it traded at
+   Anything still unpriced is dropped, and the caller is told how many. */
+function priceRow(h, published0, published1, stamp, d0, d1, t0Stable, t1Stable) {
+  var p0 = published0[stamp] || 0, p1 = published1[stamp] || 0;
+  if (p0 > 0 && p1 > 0) return [p0, p1, 'published'];
+
+  var ratio = priceFromTick(h.tick, d0, d1);   /* token1 per token0 */
+  if (t1Stable && ratio > 0) return [ratio, 1, 'stable'];
+  if (t0Stable && ratio > 0) return [1, 1 / ratio, 'stable'];
+
+  var v = Number(h.volumeUSD) || 0;
+  var v0 = Number(h.volumeToken0) || 0, v1 = Number(h.volumeToken1) || 0;
+  if (v > 0 && v0 > 0 && v1 > 0) return [v / v0, v / v1, 'traded'];
+
+  return [0, 0, 'none'];
+}
+
 async function tryDays(endpoint, query, key, idVars, afterTs, maxPages) {
   let rows = await pageAll(endpoint, query, key,
       Object.assign({}, idVars, { after: afterTs }), 'date', maxPages);
@@ -258,6 +290,7 @@ export async function onRequestGet(context) {
       /* Ascending. Each entry is the state at the END of that hour, which is
          what makes consecutive differences meaningful. */
       rawDayRows: daily ? rows.length : undefined,
+      priceSources: undefined,   /* filled in below when daily */
       hours: hours.map(function (h) {
         const stamp = daily ? dayStart(h.date, dayUnit) : Number(h.periodStartUnix);
         const row = {
@@ -271,8 +304,12 @@ export async function onRequestGet(context) {
           feesUSD: Number(h.feesUSD)
         };
         if (daily) {
-          row.p0 = prices0[stamp] || 0;   /* token0 in dollars that day */
-          row.p1 = prices1[stamp] || 0;
+          const pr = priceRow(h, prices0, prices1, stamp,
+                              Number(meta.pool.token0.decimals),
+                              Number(meta.pool.token1.decimals),
+                              STABLES.test(meta.pool.token0.symbol || ''),
+                              STABLES.test(meta.pool.token1.symbol || ''));
+          row.p0 = pr[0]; row.p1 = pr[1]; row.pxFrom = pr[2];
         }
         return row;
       }).filter(function (h) {
@@ -281,6 +318,12 @@ export async function onRequestGet(context) {
         return true;
       })
     };
+
+    if (daily) {
+      const tally = {};
+      payload.hours.forEach(function (h) { tally[h.pxFrom] = (tally[h.pxFrom] || 0) + 1; });
+      payload.priceSources = tally;
+    }
 
     const out = json(payload);
     context.waitUntil(cache.put(cacheKey, out.clone()));
