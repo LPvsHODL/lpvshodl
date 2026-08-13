@@ -452,12 +452,20 @@ footer.site .legal{max-width:70ch;margin-top:18px;font-size:12px}
 .rebal .body[hidden]{display:none}
 
 /* ---- social link in the header + footer ---- */
-.xlink{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
-  border:1px solid var(--rule);border-radius:99px;color:var(--soft);text-decoration:none}
-.xlink:hover{border-color:var(--accent);color:var(--accent)}
-.xlink svg{width:12px;height:12px;fill:currentColor}
+.xlink{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
+  border:1px solid var(--rule);border-radius:99px;color:var(--ink);text-decoration:none;
+  transition:border-color .15s ease,color .15s ease,background .15s ease}
+.xlink:hover{border-color:var(--accent);background:var(--accentSoft);color:var(--accent)}
+.xlink svg{width:17px;height:17px;fill:currentColor}
 footer.site .cols a.x{display:inline-flex;align-items:center;gap:5px}
 footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
+/* ---- which fee source produced the number ---- */
+.srcbadge{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:5px 12px;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.02em;margin-bottom:12px}
+.srcbadge.exact{background:var(--goodSoft);color:var(--good)}
+.srcbadge.est{background:var(--warnSoft);color:var(--warn)}
+.srcbadge b{font-weight:600}
+
 /* ---- long-form content below the tool ---- */
 .seo{max-width:760px;margin:56px auto 0;padding-top:34px;border-top:1px solid var(--rule)}
 .seo h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:26px;
@@ -614,7 +622,10 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
         </div>
         <p class="hint" id="ratioOut"></p>
       </div>
-      <div style="margin-top:11px"><button type="button" class="ghost" id="optbtn" disabled>Find the best range</button></div>
+      <div style="margin-top:11px">
+        <button type="button" class="ghost" id="optbtn" disabled hidden>Find the best range</button>
+        <p class="hint" style="margin:0">The old &ldquo;best range&rdquo; finder has been removed. It judged ranges by how long they stayed in range and ignored how thinly they spread your money, so it recommended very wide bands that earn very little. A version built on the real fee record will replace it.</p>
+      </div>
 
       <div class="rebal" id="rebalBlock">
         <label class="toggle" for="rebal">
@@ -721,6 +732,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     <div class="card" id="costCard" style="margin-top:16px">
       <h2>What the pool did to your money</h2>
       <div class="note badbox" id="naNote" hidden></div>
+      <div id="srcBadge" hidden></div>
       <div class="note warnbox" id="feeFlag" hidden></div>
       <div class="note warnbox" id="aprFlag" hidden></div>
       <div class="note mutbox" id="ilNote">Load a pool to run the backtest.</div>
@@ -1366,7 +1378,7 @@ var LVH = (function () {
 var $=function(i){return document.getElementById(i);};
 var S={series:[],loaded:false,dex:'',chain:'',addr:'',label:'',created:null,
   unsupported:false,naReason:'',feeKnown:true,modelSure:false,mode:'bounds',best:null,prevRange:null,source:'',
-  pending:null,pendingFiat:0,last:null};
+  pending:null,pendingFiat:0,last:null,exact:null,exactState:'off'};
 
 S.depositUSD=10000;
 
@@ -1580,6 +1592,7 @@ function fetchPool(chain,addr){
       if(p.q>0)S.pendingFiat=p.q;
     }
     LVHA.once('pool_loaded',{chain:S.chain||'',dex:S.dex||'',pair:S.label||''});
+    loadExact();
     snapDate();
   });
 }
@@ -1649,6 +1662,149 @@ function currentRange(){
   }
   return {down:n('rDown'),up:n('rUp')};
 }
+
+/* ---------------------------------------------------------------------------
+   Exact fee accounting.
+
+   The estimate below this splits fees by dollars: your deposit over the pool's
+   total. Uniswap splits them by liquidity, and a wide range buys far less
+   liquidity per dollar than a narrow one. On a tightly-managed pool that made
+   the estimate roughly nine times too generous; on a thin, neglected one it
+   was twenty times too mean. The direction is not predictable, so we read what
+   the pool actually paid instead.
+
+   feeGrowthGlobal rises by (fee / active liquidity) on every swap, so for a
+   position of liquidity L that was in range:  fees = change in tracker x L.
+   Every competitor, including bots that appear for a single block, is already
+   inside "active liquidity". Nothing needs detecting or guessing.
+   --------------------------------------------------------------------------- */
+var FEEQ = (function(){
+  var Q256 = (typeof BigInt === 'function') ? (BigInt(1) << BigInt(256)) : null;
+
+  function priceAtTick(t){return Math.pow(1.0001,t);}
+  function tickAtPrice(p){return Math.floor(Math.log(p)/Math.log(1.0001));}
+  function human(raw,d0,d1){return raw*Math.pow(10,d0-d1);}
+  function raw(h,d0,d1){return h*Math.pow(10,d1-d0);}
+
+  function amountsFor(L,P,Pa,Pb){
+    var sa=Math.sqrt(Pa),sb=Math.sqrt(Pb),sp=Math.sqrt(P);
+    if(sp<=sa)return{a0:L*(sb-sa)/(sa*sb),a1:0};
+    if(sp>=sb)return{a0:0,a1:L*(sb-sa)};
+    return{a0:L*(sb-sp)/(sp*sb),a1:L*(sp-sa)};
+  }
+  /* liquidity bought by a given value, expressed in raw token1 units */
+  function liquidityForValue(valT1,P,Pa,Pb){
+    var one=amountsFor(1,P,Pa,Pb),cost=one.a0*P+one.a1;
+    return cost>0? valT1/cost : 0;
+  }
+  /* the tracker is a uint256 designed to wrap; differences must be modular */
+  function delta(a,b){
+    var x=BigInt(a),y=BigInt(b);
+    return ((y-x)%Q256+Q256)%Q256;
+  }
+  function feesFrom(d,L){
+    if(!(L>0)||d===BigInt(0))return 0;
+    var bits=d.toString(2).length, sh=bits>64?BigInt(bits-64):BigInt(0);
+    return Number(d>>sh)*Math.pow(2,Number(sh))*L/Math.pow(2,128);
+  }
+
+  /* hours: ascending [{t,tick,liquidity,feeGrowthGlobal0X128,feeGrowthGlobal1X128}] */
+  function walk(hours,L,tickLo,tickHi){
+    var f0=0,f1=0,inN=0,outN=0,shSum=0,shN=0;
+    for(var i=1;i<hours.length;i++){
+      var h=hours[i],t=Number(h.tick);
+      if(!(t>=tickLo&&t<tickHi)){outN++;continue;}
+      inN++;
+      f0+=feesFrom(delta(hours[i-1].feeGrowthGlobal0X128,h.feeGrowthGlobal0X128),L);
+      f1+=feesFrom(delta(hours[i-1].feeGrowthGlobal1X128,h.feeGrowthGlobal1X128),L);
+      var act=Number(h.liquidity);
+      if(act>0){shSum+=L/(L+act);shN++;}
+    }
+    return{f0:f0,f1:f1,inN:inN,outN:outN,share:shN?shSum/shN:0};
+  }
+
+  return {priceAtTick:priceAtTick,tickAtPrice:tickAtPrice,human:human,raw:raw,
+          amountsFor:amountsFor,liquidityForValue:liquidityForValue,walk:walk,
+          ok:(typeof BigInt==='function')};
+})();
+
+/* GeckoTerminal's chain names -> the ones our data endpoint knows */
+var EXACT_CHAINS={eth:'ethereum',ethereum:'ethereum',base:'base',
+  arbitrum:'arbitrum','arbitrum-one':'arbitrum',optimism:'optimism','op-mainnet':'optimism',
+  polygon_pos:'polygon',polygon:'polygon',bsc:'bnb',bnb:'bnb',avax:'avalanche',avalanche:'avalanche'};
+
+/* Fetch the pool's own hourly fee record. Failure is fine and silent — the
+   estimate carries on exactly as before. */
+function loadExact(){
+  S.exact=null;S.exactState='off';
+  if(!FEEQ.ok||!S.loaded||!S.chain||!S.addr)return;
+  var chain=EXACT_CHAINS[String(S.chain).toLowerCase()];
+  if(!chain)return;
+  var from=(S.series&&S.series.length)?Math.floor(S.series[0].t)-3600:0;
+  S.exactState='loading';
+  var want=S.addr;
+  fetch('/api/pool?chain='+encodeURIComponent(chain)+
+        '&address='+encodeURIComponent(S.addr)+'&from='+from)
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(S.addr!==want)return;                     /* a different pool loaded meanwhile */
+      if(!j||j.error||!j.hours||j.hours.length<24){S.exactState='off';S.exact=null;return;}
+      S.exact=j;S.exactState='on';update();
+    })
+    .catch(function(){S.exactState='off';S.exact=null;});
+}
+
+/* Work out how the site's token A/B line up with the pool's token0/token1 by
+   comparing prices rather than trusting symbols, which vary in spelling. */
+function exactOrientation(){
+  var X=S.exact;if(!X)return null;
+  var d0=X.pool.token0.decimals,d1=X.pool.token1.decimals;
+  var i0=entryIdx();if(i0<0)return null;
+  var e=S.series[i0];if(!e||!(e.pa>0)||!(e.pb>0))return null;
+  var idx=0;for(var i=0;i<X.hours.length;i++){if(X.hours[i].t<=e.t)idx=i;}
+  var sub=FEEQ.human(FEEQ.priceAtTick(Number(X.hours[idx].tick)),d0,d1);
+  var r=e.pa/e.pb;
+  var direct=Math.abs(sub/r-1), inverse=Math.abs(sub*r-1);
+  if(Math.min(direct,inverse)>0.15)return null;    /* neither matches — do not guess */
+  return {aIsToken0:direct<=inverse,d0:d0,d1:d1,idx:idx,subPrice:sub,entry:e};
+}
+
+/* Fees actually paid to a position with these bounds, in token A and B. */
+function exactFees(down,up,cl){
+  var X=S.exact;if(!X)return null;
+  var o=exactOrientation();if(!o)return null;
+  var hours=X.hours.slice(o.idx);
+  if(hours.length<24)return null;
+
+  var r0=o.entry.pa/o.entry.pb;
+  var loR=cl?r0*(1-down/100):r0/1e6, hiR=cl?r0*(1+up/100):r0*1e6;
+  if(!(hiR>loR))return null;
+
+  /* the site's bounds are on A-priced-in-B; the pool's are on token1 per token0 */
+  var Plo,Phi;
+  if(o.aIsToken0){Plo=loR;Phi=hiR;}
+  else{Plo=1/hiR;Phi=1/loR;}
+
+  var P0=o.subPrice;
+  var rawLo=FEEQ.raw(Plo,o.d0,o.d1),rawHi=FEEQ.raw(Phi,o.d0,o.d1),rawP=FEEQ.raw(P0,o.d0,o.d1);
+  if(!(rawHi>rawLo)||!(rawP>0))return null;
+
+  /* deposit expressed in raw token1 units */
+  var usdT1=o.aIsToken0?o.entry.pb:o.entry.pa;
+  if(!(usdT1>0))return null;
+  var valT1=(S.depositUSD/usdT1)*Math.pow(10,o.d1);
+  var L=FEEQ.liquidityForValue(valT1,rawP,rawLo,rawHi);
+  if(!(L>0)||!isFinite(L))return null;
+
+  var w=FEEQ.walk(hours,L,FEEQ.tickAtPrice(rawLo),FEEQ.tickAtPrice(rawHi));
+  var t0=w.f0/Math.pow(10,o.d0), t1=w.f1/Math.pow(10,o.d1);
+  return {
+    fA:o.aIsToken0?t0:t1,
+    fB:o.aIsToken0?t1:t0,
+    inN:w.inN,totalN:w.inN+w.outN,share:w.share
+  };
+}
+
 function run(down,up,forceCl){
   var pa0=n('pa0'),pb0=n('pb0'),pa1=n('pa1'),pb1=n('pb1');
   var tvl=n('tvl'),fee=n('fee')/100,mode=$('model').value;
@@ -1701,12 +1857,25 @@ function run(down,up,forceCl){
     cL=LVH.v3L(val/d.pb,r,cLo,cHi);
   });
 
+  /* Swap the estimate for what the pool actually paid, when we have it.
+     Re-centring is excluded: it changes the position's liquidity and bounds
+     part-way through, which this record cannot express. */
+  var feeSrc='estimate';
+  if(S.exact&&!reOn){
+    var ex=exactFees(down,up,cl);
+    if(ex&&isFinite(ex.fA)&&isFinite(ex.fB)){
+      fA=ex.fA;fB=ex.fB;feeSrc='exact';
+      if(cl&&ex.totalN>0)inDays=Math.round(slice.length*ex.inN/ex.totalN);
+      if(ex.share>0){shSum=ex.share;shN=1;}
+    }
+  }
+
   var pA,pB;
   if(cl){var am2=LVH.v3Amounts(cL,r1,cLo,cHi);pA=am2[0];pB=am2[1];}
   else{var pv=V0*Math.sqrt((pa1/pa0)*(pb1/pb0));pA=(pv/2)/pa1;pB=(pv/2)/pb1;}
   var feeV=fA*pa1+fB*pb1;
   var apr=(slice.length&&V0>0)?(feeV/V0)*(365/slice.length)*100:0;
-  return {V0:V0,r0:r0,r1:r1,lo:lo,hi:hi,cLo:cLo,cHi:cHi,cl:cl,down:down,up:up,apr:apr,
+  return {feeSrc:feeSrc,V0:V0,r0:r0,r1:r1,lo:lo,hi:hi,cLo:cLo,cHi:cHi,cl:cl,down:down,up:up,apr:apr,
     days:slice.length,inDays:inDays,eA:eA,eB:eB,
     pA:pA,pB:pB,posV:pA*pa1+pB*pb1,fA:fA,fB:fB,feeV:feeV,
     reOn:reOn,reN:reN,reSpend:reSpend,reWait:reWait,reDead:dead,
@@ -1762,7 +1931,7 @@ function emptyState(){
   $('ilNote').className='note mutbox';$('ilNote').textContent='Load a pool to run the backtest.';
   $('rangeNote').hidden=true;$('fxNote').hidden=true;$('depHint').textContent='';
   $('optbtn').disabled=true;$('optPanel').hidden=true;
-  $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;
+  $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;$('srcBadge').hidden=true;
   advSummary();
 }
 
@@ -2069,7 +2238,7 @@ function update(){
     bar('holdBarA','holdBarB',m.holdA,m.holdB);
     $('ilNote').className='note mutbox';$('ilNote').textContent='Only the hold comparison is shown.';
     $('rangeNote').hidden=true;$('fxNote').hidden=true;$('feeFlag').hidden=true;$('aprFlag').hidden=true;
-    $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;
+    $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;$('srcBadge').hidden=true;
     return;
   }
   $('naNote').hidden=true;
@@ -2216,6 +2385,19 @@ function update(){
       money(total)+'</strong> today, versus <strong>'+money(total,LVH.fx.then)+
       '</strong> at the entry-date rate \u2014 that gap is currency, not the pool.';
   }
+  var sb=$('srcBadge');
+  if(m.feeSrc==='exact'){
+    sb.hidden=false;sb.className='srcbadge exact';
+    sb.innerHTML='\u25cf <b>Real fees</b> \u00b7 read from the pool\u2019s own record, not estimated';
+  }else if(S.exactState==='loading'){
+    sb.hidden=false;sb.className='srcbadge est';
+    sb.innerHTML='\u25cb Loading the pool\u2019s real fee record\u2026';
+  }else{
+    sb.hidden=false;sb.className='srcbadge est';
+    sb.innerHTML='\u25cb <b>Estimated fees</b> \u00b7 '+
+      (m.reOn?'re-centring can\u2019t use the real record':'no fee record for this pool')+
+      ' \u2014 treat as a rough guide';
+  }
   renderWhatIf(m);
   renderBases(m,total,gas);
   wireShare(m,net);
@@ -2238,6 +2420,7 @@ function search(){
   return best;
 }
 function autoBest(){
+  return;   /* retired along with the best-range button */
   if(!S.loaded||S.unsupported||$('model').value!=='cl'){S.best=null;update();return;}
   S.best=search();update();
 }
