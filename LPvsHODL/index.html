@@ -632,7 +632,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
         <button type="button" class="chip on" data-days="182">6M</button>
         <button type="button" class="chip" data-days="365" id="chip1y" hidden>1Y</button>
         <button type="button" class="chip" data-days="730" id="chip2y" hidden>2Y</button>
-        <button type="button" class="chip" data-days="max" id="chipMax" hidden>All</button>
+
       </div>
     </div>
     <div class="pf">
@@ -1462,7 +1462,7 @@ var LVH = (function () {
 var $=function(i){return document.getElementById(i);};
 var S={series:[],loaded:false,dex:'',chain:'',addr:'',label:'',created:null,
   unsupported:false,naReason:'',feeKnown:true,modelSure:false,mode:'bounds',best:null,prevRange:null,source:'',
-  pending:null,pendingFiat:0,last:null,exact:null,exactState:'off',longDays:null,pinned:null};
+  pending:null,pendingFiat:0,last:null,exact:null,exactState:'off',longDays:null,pinned:null,firstDay:null,askedDays:null,clampedDays:null};
 
 S.depositUSD=10000;
 
@@ -1651,23 +1651,8 @@ function fetchPool(chain,addr){
       setStatus('Found '+esc(S.label)+' on '+LVH.chainName(S.chain)+', but there isn\u2019t enough daily history to backtest. The pool is probably too new.','err');
       var e=new Error('nh');e.handled=true;throw e;}
     LVH.fillChains('chain',S.chain);
-    var first=new Date(S.series[0].t*1000);
-    $('date').min=iso(first);
-    $('date').max=iso(new Date(S.series[S.series.length-1].t*1000));
     renderRecents(LVH.pushRecent(S.chain,S.addr,S.label,S.feeKnown?n('fee'):null));
-
-    var bits=['<b>'+esc(S.label)+'</b>','on '+LVH.chainName(S.chain)];
-    if(S.dex)bits.push(esc(S.dex));
-    var line=bits.join(' \u00b7 ');
-    var dataAge=Math.round((Date.now()-first.getTime())/86400000);
-    if(S.created){
-      var age=Math.round((Date.now()-S.created.getTime())/86400000);
-      line+=' \u2014 created '+LVH.niceDate(S.created)+', '+age.toLocaleString('en-US')+' days ago.';
-    }
-    line+=(S.source==='subgraph')
-      ? ' Full daily history available.'
-      : ' Backtesting '+dataAge.toLocaleString('en-US')+' days, from '+LVH.niceDate(first)+'.';
-    setStatus(line,'ok');
+    describeSeries();
     if(!S.feeKnown||!S.modelSure)$('adv').open=true;
     if(S.pending){
       var p=S.pending;S.pending=null;
@@ -1821,7 +1806,7 @@ var EXACT_CHAINS={eth:'ethereum',ethereum:'ethereum',base:'base',
 /* Fetch the pool's own hourly fee record. Failure is fine and silent — the
    estimate carries on exactly as before. */
 function loadExact(){
-  S.exact=null;S.exactState='off';S.longDays=null;longSpanNote();
+  S.exact=null;S.exactState='off';S.longDays=null;S.firstDay=null;longSpanNote();
   if(!FEEQ.ok||!S.loaded||!S.chain||!S.addr)return;
   var chain=EXACT_CHAINS[String(S.chain).toLowerCase()];
   if(!chain)return;
@@ -2258,7 +2243,15 @@ function longSpanNote(){
   var el=$('spanNote');
   if(!S.longDays){el.hidden=true;return;}
   el.hidden=false;
-  el.innerHTML='Reading the pool\u2019s own daily record instead of the six-month price feed. '+
+  var lead='';
+  if(S.firstDay){
+    var want=Math.floor(Date.now()/1000-S.longDays*86400);
+    if(S.firstDay>want+86400*3){
+      lead='This pool only goes back to <b>'+LVH.niceDate(new Date(S.firstDay*1000))+
+           '</b>, so the test starts there. ';
+    }
+  }
+  el.innerHTML=lead+'Reading the pool\u2019s own daily record instead of the six-month price feed. '
     'Daily readings can\u2019t pinpoint the moment price crossed your range \u2014 measured against '+
     'hourly data that flatters a &plusmn;5% band by about 3%, and wider bands by almost nothing.';
 }
@@ -2269,15 +2262,19 @@ function offerLongSpans(){
   var haveDays=made? (Date.now()/1000-made)/86400 : 0;
   $('chip1y').hidden = haveDays<200;
   $('chip2y').hidden = haveDays<400;
-  $('chipMax').hidden= haveDays<400;
 }
 
 function loadLongHistory(days,btn){
   var made=(S.exact&&S.exact.pool&&S.exact.pool.createdAt)||0;
   var chain=EXACT_CHAINS[String(S.chain).toLowerCase()];
   if(!chain||!S.addr){return;}
-  var from=(days==='max')?Math.max(0,made-86400)
-                         :Math.floor(Date.now()/1000-days*86400);
+  /* Never ask for history older than the pool. Clamping here means a young
+     pool quietly starts at its own beginning instead of returning nothing. */
+  var ageDays=made?(Date.now()/1000-made)/86400:1e9;
+  var clamped=Math.min(days,Math.max(1,Math.floor(ageDays)));
+  var from=made? Math.max(made-86400, Math.floor(Date.now()/1000-clamped*86400))
+               : Math.floor(Date.now()/1000-clamped*86400);
+  S.askedDays=days;S.clampedDays=clamped;
   var want=S.addr;
   if(btn)btn.textContent=btn.textContent+'\u2026';
   fetch('/api/pool?span=day&chain='+encodeURIComponent(chain)+
@@ -2307,7 +2304,9 @@ function loadLongHistory(days,btn){
       S.exactState='on';
       S.longDays=days;
       S.best=null;
-      setDaysAgo(days==='max'?1e6:days);
+      S.firstDay=ser[0].t;
+      describeSeries();                 /* new limits first, so the date field accepts what follows */
+      setDaysAgo(days);                 /* setDaysAgo already stops at the oldest row */
       longSpanNote();
       update();
       LVHA.once('long_history_used');
@@ -2357,6 +2356,32 @@ function pinStables(){
   if(isStable(sb))names.push(sb);
   if(touched)S.pinned=names.join(' and ');
   return touched;
+}
+
+
+/* The date field's limits and the green summary line both describe whatever
+   history is currently loaded. Switching to the pool's own long record swaps
+   that history out, so both have to be rebuilt — otherwise the field rejects
+   dates the backtest just ran, and the line reports a window that is no longer
+   the one on screen. */
+function describeSeries(){
+  if(!S.loaded||!S.series||!S.series.length)return;
+  var first=new Date(S.series[0].t*1000);
+  var last=new Date(S.series[S.series.length-1].t*1000);
+  $('date').min=iso(first);
+  $('date').max=iso(last);
+
+  var bits=['<b>'+esc(S.label)+'</b>','on '+LVH.chainName(S.chain)];
+  if(S.dex)bits.push(esc(S.dex));
+  var line=bits.join(' \u00b7 ');
+  var dataAge=Math.round((Date.now()-first.getTime())/86400000);
+  if(S.created){
+    var age=Math.round((Date.now()-S.created.getTime())/86400000);
+    line+=' \u2014 created '+LVH.niceDate(S.created)+', '+age.toLocaleString('en-US')+' days ago.';
+  }
+  line+=' Backtesting '+dataAge.toLocaleString('en-US')+' days, from '+LVH.niceDate(first)+'.';
+  if(S.longDays)line+=' Reading the pool\u2019s own daily record.';
+  setStatus(line,'ok');
 }
 
 function renderWhatIf(m){
@@ -2884,9 +2909,9 @@ Array.prototype.forEach.call($('dateChips').children,function(b){
   b.addEventListener('click',function(){
     Array.prototype.forEach.call($('dateChips').children,function(c){c.classList.remove('on');});
     b.classList.add('on');
-    var raw=b.getAttribute('data-days');
-    if(raw==='max'||parseFloat(raw)>200){loadLongHistory(raw==='max'?'max':parseFloat(raw),b);return;}
-    setDaysAgo(parseFloat(raw));});});
+    var raw=parseFloat(b.getAttribute('data-days'));
+    if(raw>200){loadLongHistory(raw,b);return;}
+    setDaysAgo(raw);});});
 Array.prototype.forEach.call($('modeChips').children,function(b){
   b.addEventListener('click',function(){
     setMode(b.getAttribute('data-mode'));
