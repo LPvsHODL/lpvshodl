@@ -154,7 +154,7 @@ body{background:var(--bg);color:var(--ink);
 select.mini{padding-right:8px;-webkit-appearance:none;appearance:none;text-align:center}
 
 nav.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--rule);margin-bottom:26px;
-  padding-bottom:0;overflow-x:auto}
+  padding-bottom:0}
 nav.tabs a{font-size:13.5px;font-weight:500;color:var(--soft);text-decoration:none;
   padding:9px 14px;border-bottom:2px solid transparent;white-space:nowrap;margin-bottom:-1px}
 nav.tabs a:hover{color:var(--ink)}
@@ -922,7 +922,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     </details>
     <details>
       <summary>Are the fee estimates conservative or optimistic?</summary>
-      <p>Conservative for concentrated positions. Fee income is modelled at the pool's average pro-rata rate rather than boosted for concentration, because the size of that boost depends on how concentrated every competing position is — which is not in the public data. A narrow range really does earn more per dollar while in range; this tool does not credit you for it. What it models exactly is how many days you were earning at all.</p>
+      <p>Either, depending on the pool — which is why the tool now reads the real figure where it can. On pools where the fee record is available, fees come from the pool's own accounting and the badge above the results says <strong>Real fees</strong>. Everywhere else it falls back to an estimate that splits fees by your share of the pool's total value, and that estimate can be badly wrong in both directions: it understated a neglected pool where almost no liquidity sits near the trading price, and overstated an actively managed one by roughly nine times. Treat anything labelled <strong>Estimated fees</strong> as a rough guide, not a floor.</p>
     </details>
     <details>
       <summary>Does this include gas?</summary>
@@ -941,8 +941,8 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
 <div class="disc">
   <h3>Method and assumptions</h3>
   <ul>
-    <li><strong>Backtests cover the last six months</strong> of daily data, which is the window the price source publishes. <strong>Fees</strong> use each day's real pool volume &times; the fee rate &times; your share of TVL, credited half in each token at that day's prices. Each day uses that day's real trading volume. Pool TVL is held at today's value across the period.</li>
-    <li><strong>Fees are not boosted for concentration</strong>, so concentrated results are conservative. Range choice affects how many days you earned, which is modelled exactly.</li>
+    <li><strong>Backtests cover the last six months</strong> by default, and further back where the pool publishes its own daily history — up to two years, never earlier than the pool's creation date.</li>
+    <li><strong>Fees</strong> come from the pool's own fee record where one is available, multiplied by the liquidity your position actually holds. That is the same basis the contract uses to pay you, and those results are badged <strong>Real fees</strong>. Where no record exists, fees fall back to an estimate — daily volume &times; fee rate &times; your share of the pool's total value — which takes no account of how much liquidity sits near the trading price and can be wrong in either direction by a large multiple. Those results are badged <strong>Estimated fees</strong>.</li>
     <li><strong>Concentrated positions</strong> use the standard tick and square-root-price formulas shared by Uniswap v3, PancakeSwap v3, Orca Whirlpools, Raydium CLMM and Aerodrome Slipstream.</li>
     <li><strong>Currency conversion</strong> uses European Central Bank reference rates via Frankfurter, at today's rate for present values and the entry-date rate to separate currency movement from pool performance.</li>
     <li><strong>Not included:</strong> gas, slippage, fee compounding, rebalancing, liquidity mining rewards, taxes.</li>
@@ -971,7 +971,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
 
   <h2>Which pools and chains are supported</h2>
   <p>Any pool with a public address on a major chain: Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Solana and more. That covers Uniswap v2, v3 and v4, PancakeSwap, SushiSwap, Aerodrome, Trader Joe, Curve-style pools and most forks of them. Paste a pool address or a link from Uniswap, GeckoTerminal or DexScreener — the chain, protocol and fee tier are detected for you.</p>
-  <p>Price and volume history comes from GeckoTerminal and covers a six-month backtest window. Exchange rates for non-dollar currencies come from Frankfurter. Nothing is stored on a server, and no wallet connection is ever requested.</p>
+  <p>Price and volume history comes from GeckoTerminal for the standard six-month window, and from the pool's own published daily record for longer periods where one exists. Exchange rates for non-dollar currencies come from Frankfurter. Nothing is stored on a server, and no wallet connection is ever requested.</p>
 
   <h2>Common questions</h2>
   <div class="faq">
@@ -993,7 +993,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     </details>
     <details>
       <summary>Are the fee estimates accurate?</summary>
-      <p>They are a reasonable floor rather than a promise. Fees are estimated from the pool's real daily volume and fee tier, scaled by the share of the pool your deposit would represent. For concentrated positions the estimate is conservative: a narrow range earns more per dollar than this model credits it with, because it does not attempt to reconstruct the full liquidity distribution at every tick on every day.</p>
+      <p>Where the pool publishes a fee record, the figure is taken straight from it — that is what the pool's own accounting says a position of your size and range earned, and the results are badged <strong>Real fees</strong>. Where no record is available the tool estimates instead, from daily volume and fee tier scaled by your share of the pool's total value. That estimate is the method every other calculator uses and it can miss by a wide margin in either direction, because it ignores how much liquidity is actually sitting near the trading price. Results badged <strong>Estimated fees</strong> should be treated as indicative only.</p>
     </details>
     <details>
       <summary>Do I need to connect a wallet?</summary>
@@ -2708,7 +2708,7 @@ function update(){
       money(m.lo*m.pb1)+'</strong> and <strong>'+money(m.hi*m.pb1)+'</strong>. It was inside that window <strong>'+
       pct.toFixed(0)+'%</strong> of the time'+(out>0?' \u2014 the other '+out+' days it earned nothing.':'.')+
       (pct<100?'<br><br>Switch on re-centring in the range panel to see what chasing the price would have cost.':'')+
-      (m.feeSrc==='exact'?'':'<br><br>Real fees would likely be higher than shown. A narrow band earns more per dollar than a wide one, and this estimate doesn\u2019t count that.');
+      (m.feeSrc==='exact'?'':'<br><br>These fees are an estimate. This pool doesn\u2019t publish the record needed for the real figure, and the estimate can land well above or below it depending on how much liquidity sits near the trading price.');
   }else{
     $('rangeNote').className='note mutbox';
     $('rangeNote').textContent='This pool earns at every price, so there is no range to set. It never stops earning fees, but it also never concentrates them.';
@@ -2731,8 +2731,8 @@ function update(){
   var sb=$('srcBadge');
   if(m.feeSrc==='exact'){
     sb.hidden=false;sb.className='srcbadge exact';
-    sb.innerHTML='\u25cf <b>Real fees</b> \u00b7 what the pool paid liquidity providers, '+
-      'after the protocol\u2019s cut \u2014 advertised pool rates are the figure before it';
+    sb.innerHTML='\u25cf <b>Real fees</b> \u00b7 taken from the pool\u2019s own fee record, '+
+      'which is what the contract pays on \u2014 not volume \u00d7 fee tier, which is what advertised rates use';
   }else if(S.exactState==='loading'){
     sb.hidden=false;sb.className='srcbadge est';
     sb.innerHTML='\u25cb Loading the pool\u2019s real fee record\u2026';
