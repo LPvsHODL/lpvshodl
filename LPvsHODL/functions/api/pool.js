@@ -35,11 +35,21 @@ const SUBGRAPHS = {
      before relying on it. */
   ethereum: '5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV',
   base:     'HMuAwufqZ1YCRmzL2SfHTVkzZovC9VL2UAKhjvRqKiR1',
-  arbitrum: null,
-  optimism: null,
-  polygon:  null,
-  bnb:      null,
-  avalanche: null
+  arbitrum: 'FbCGRftH4a3yZugY7TnbYgPJVEv2LvMT6oF1fxPe9aJM',
+  optimism: 'EgnS9YE1avupkvCNj9fHnJxppfEmNNywYJtghqiu2pd9',
+  polygon:  '3hCPRGf4z88VC5rsBKU5AA9FBBq5nF3jbKJG7VZCbhjm',
+  avalanche: 'GVH9h9KZ9CqheUEL93qMbq7QwgoBu32QXQDPR6bev4Eo',
+
+  /* BNB Chain is deliberately still null. Every other ID here was read off a
+     live Graph Explorer page; no BNB one could be confirmed the same way, and
+     a wrong ID returns empty data rather than an error, which would look
+     exactly like a pool with no history. Better to fall back to the estimate,
+     which is honest about being an estimate, than to show silence.
+     A known-good alternative for Base, if the community build below ever
+     stops indexing, is FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS — but
+     don't swap it in casually: every figure published so far came from the
+     current one, and the two may not agree. */
+  bnb:      null
 };
 
 const GATEWAY = 'https://gateway.thegraph.com/api';
@@ -199,6 +209,35 @@ function dayStart(v, unit) {
   return Math.floor(ts / 86400) * 86400;
 }
 
+/* The same trap, one level down. Daily rows were found to be stamped either as
+   a real timestamp or as a day count, depending on the build of the subgraph.
+   Hourly rows have exactly the same split — some builds put a real timestamp in
+   periodStartUnix, others an hour count (timestamp / 3600) — and only the daily
+   path was ever taught to cope.
+   The consequence was silent and total: filtering an hour-count column against a
+   real timestamp matches nothing at all, so the pool came back with no hours,
+   the site saw fewer than 24 rows and quietly used the estimate instead. Every
+   result on such a chain was the estimate, with nothing on screen saying so.
+   Same remedy as the daily path: try the timestamp, fall back to the hour
+   count, then normalise whatever arrives. */
+async function tryHours(endpoint, query, key, idVars, afterTs, maxPages) {
+  let rows = await pageAll(endpoint, query, key,
+      Object.assign({}, idVars, { after: afterTs }), 'periodStartUnix', maxPages);
+  if (rows.length) return { rows: rows, unit: 'ts' };
+
+  rows = await pageAll(endpoint, query, key,
+      Object.assign({}, idVars, { after: Math.floor(afterTs / 3600) }), 'periodStartUnix', maxPages);
+  return { rows: rows, unit: 'hour' };
+}
+
+/* An hour count for any plausible date is in the hundreds of thousands; a real
+   timestamp is in the billions. Nothing lands between the two. */
+function hourStart(v, unit) {
+  const n = Number(v);
+  const ts = (unit === 'hour' || n < 100000000) ? n * 3600 : n;
+  return Math.floor(ts / 3600) * 3600;
+}
+
 async function pageAll(endpoint, query, key, vars, cursorField, maxPages) {
   let out = [], after = vars.after || 0;
   for (let i = 0; i < maxPages; i++) {
@@ -216,7 +255,17 @@ export async function onRequestGet(context) {
     const url = new URL(context.request.url);
     const chain = (url.searchParams.get('chain') || '').toLowerCase().trim();
     const address = (url.searchParams.get('address') || '').toLowerCase().trim();
-    const from = parseInt(url.searchParams.get('from'), 10) || 0;
+    const daily = (url.searchParams.get('span') || 'hour') === 'day';
+
+    /* The caller derives `from` from the first row of its price series, so it
+       lands on a different second almost every time. That made the cache key
+       unique per visit: near enough every load was a cache miss and a paid
+       query, on a plan with a fixed monthly allowance. Snapping it back to the
+       start of the day makes repeat visitors to the same popular pool share one
+       cached answer. The cost is fetching up to a day of extra rows, which the
+       page ignores anyway because it aligns everything by timestamp. */
+    const fromRaw = parseInt(url.searchParams.get('from'), 10) || 0;
+    const from = fromRaw > 0 ? Math.floor(fromRaw / 86400) * 86400 : 0;
 
     if (!/^0x[0-9a-f]{40}$/.test(address)) {
       return json({ error: 'bad_address' }, 400);
@@ -232,7 +281,12 @@ export async function onRequestGet(context) {
 
     /* Serve from the edge cache when we can — the same popular pools get
        requested over and over, and every miss costs a paid query. */
-    const cacheKey = new Request(url.toString(), { method: 'GET' });
+    const canon = new URL(url.origin + url.pathname);
+    canon.searchParams.set('chain', chain);
+    canon.searchParams.set('address', address);
+    canon.searchParams.set('span', daily ? 'day' : 'hour');
+    canon.searchParams.set('from', String(from));
+    const cacheKey = new Request(canon.toString(), { method: 'GET' });
     const cache = caches.default;
     const hit = await cache.match(cacheKey);
     if (hit) return hit;
@@ -245,10 +299,9 @@ export async function onRequestGet(context) {
     /* Hourly is precise but heavy; daily is the only sane way to carry years of
        history to a phone. The caller picks. Either way the cursor is the
        timestamp, since skipping would drift if new rows land mid-fetch. */
-    const daily = (url.searchParams.get('span') || 'hour') === 'day';
     const after0 = from > 0 ? from - 1 : 0;
 
-    let rows, prices0 = null, prices1 = null, dayUnit = 'ts';
+    let rows, prices0 = null, prices1 = null, dayUnit = 'ts', hourUnit = 'ts';
     if (daily) {
       const [dd, t0d, t1d] = await Promise.all([
         tryDays(endpoint, DAYS_QUERY, 'poolDayDatas', { pool: address }, after0, 4),
@@ -260,8 +313,10 @@ export async function onRequestGet(context) {
       prices0 = {}; t0d.rows.forEach(function (r) { prices0[dayStart(r.date, t0d.unit)] = Number(r.priceUSD); });
       prices1 = {}; t1d.rows.forEach(function (r) { prices1[dayStart(r.date, t1d.unit)] = Number(r.priceUSD); });
     } else {
-      rows = await pageAll(endpoint, HOURS_QUERY, 'poolHourDatas',
-                           { pool: address, after: after0 }, 'periodStartUnix', MAX_PAGES);
+      const hh = await tryHours(endpoint, HOURS_QUERY, 'poolHourDatas',
+                                { pool: address }, after0, MAX_PAGES);
+      rows = hh.rows;
+      hourUnit = hh.unit;
     }
     const hours = rows;
 
@@ -289,10 +344,18 @@ export async function onRequestGet(context) {
       },
       /* Ascending. Each entry is the state at the END of that hour, which is
          what makes consecutive differences meaningful. */
+      /* Diagnostics. If `hours` comes back short, these say whether the rows
+         never arrived at all or arrived and were filtered out afterwards, and
+         which stamp format the subgraph turned out to use. Previously only the
+         daily path reported this, which is why the hourly failure stayed
+         invisible for so long. */
+      rawRows: rows.length,
+      stampUnit: daily ? dayUnit : hourUnit,
       rawDayRows: daily ? rows.length : undefined,
       priceSources: undefined,   /* filled in below when daily */
       hours: hours.map(function (h) {
-        const stamp = daily ? dayStart(h.date, dayUnit) : Number(h.periodStartUnix);
+        const stamp = daily ? dayStart(h.date, dayUnit)
+                            : hourStart(h.periodStartUnix, hourUnit);
         const row = {
           t: stamp,
           tick: h.tick === null ? null : Number(h.tick),
