@@ -58,6 +58,13 @@ h1 em{font-style:normal;color:var(--accent)}
 .headline .sub{color:var(--soft);font-size:14px;margin-top:6px}
 .assume{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--soft);
   margin:0 0 18px;line-height:1.7}
+.distlegend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--soft);margin-bottom:8px}
+.distlegend span{display:flex;align-items:center;gap:5px}
+.distlegend i.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.distlegend i.up{background:var(--good)} .distlegend i.down{background:var(--bad)}
+.distnote{color:var(--text-muted,var(--soft));opacity:.8}
+#dist svg{width:100%;height:auto;display:block;overflow:visible}
 .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
 select,input[type=search]{background:var(--field);color:var(--ink);border:1px solid var(--rule);
   border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit;min-width:150px}
@@ -71,12 +78,18 @@ select,input[type=search]{background:var(--field);color:var(--ink);border:1px so
 .bands span{color:var(--soft)}
 .bands b{font-weight:500}
 .up{color:var(--good)} .down{color:var(--bad)}
+.scorewrap{text-align:right}
+.scorelab{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--soft);
+  white-space:nowrap;margin-bottom:2px}
 .score{font-family:"IBM Plex Mono",monospace;font-size:17px;font-weight:500;white-space:nowrap}
 .qs{display:flex;gap:3px;margin-top:6px}
 .q{width:16px;height:6px;border-radius:2px;background:var(--rule)}
 .q.win{background:var(--good)} .q.loss{background:var(--bad)}
 .note{color:var(--soft);font-size:13px;margin-top:22px;line-height:1.65}
 a.plain{color:var(--accent);text-decoration:none}
+a.lp{display:inline-block;margin-top:8px;font-size:13px;color:var(--accent);
+  text-decoration:none;border:1px solid var(--rule);border-radius:8px;padding:5px 11px}
+a.lp:hover{border-color:var(--accent)}
 .empty{padding:34px 0;color:var(--soft)}
 </style>
 </head>
@@ -103,6 +116,15 @@ Pools without a record are not listed at all.</p>
 <div class="headline" id="headline">
   <div class="big" id="hBig">Loading&hellip;</div>
   <div class="sub" id="hSub">Fetching the overnight run.</div>
+</div>
+
+<div id="distWrap" hidden style="margin:0 0 20px">
+  <div class="distlegend">
+    <span><i class="sw up"></i>Beat holding</span>
+    <span><i class="sw down"></i>Lost to holding</span>
+    <span class="distnote" id="distNote"></span>
+  </div>
+  <div id="dist"></div>
 </div>
 
 <p class="assume" id="assume"></p>
@@ -151,7 +173,71 @@ var DATA=null;
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){
   return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function pct(v){var s=(v>0?'+':'')+v.toFixed(1)+'%';return s;}
+
+/* Where to send someone who wants to actually provide liquidity here.
+   Only patterns confirmed against the live site are used. Anything else falls
+   back to the pool's data page rather than a guessed deep link — a dead link on
+   a page whose whole pitch is accuracy would be its own argument against us.
+   The label changes with the destination so it never promises more than it does. */
+function lpLink(p){
+  var dex=String(p.dex||'').toLowerCase();
+  if(dex.indexOf('uniswap')===0){
+    return {url:'https://app.uniswap.org/explore/pools/'+encodeURIComponent(p.chain)+
+                '/'+encodeURIComponent(p.address),
+            label:'Provide liquidity on Uniswap \u2192'};
+  }
+  var net={ethereum:'eth',base:'base',arbitrum:'arbitrum',optimism:'optimism',
+           polygon:'polygon_pos',avalanche:'avax'}[p.chain];
+  if(!net)return null;
+  return {url:'https://www.geckoterminal.com/'+net+'/pools/'+encodeURIComponent(p.address),
+          label:'View this pool \u2192'};
+}
 function cls(v){return v>0?'up':'down';}
+
+/* One bar per pool, left of the line means it lost to simply holding. The list
+   below answers "which pool"; this answers "how did they do overall", which is
+   the question the page exists for and the one a list of twenty rows buries.
+   Drawn by hand rather than with a chart library: the page is 12KB and pulling
+   in a library to draw rectangles would be most of that again. */
+function distChart(rows){
+  if(rows.length<2)return '';
+  var vals=rows.map(function(p){return p.bands['25'].vsHold;});
+  var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+  lo=Math.min(lo,0);hi=Math.max(hi,0);
+  if(!(hi>lo))return '';
+  var pad=(hi-lo)*0.06;lo-=pad;hi+=pad;
+
+  var W=700,ROW=15,PADT=6,PADB=18,H=PADT+rows.length*ROW+PADB;
+  function X(v){return (v-lo)/(hi-lo)*W;}
+  var zero=X(0);
+
+  var bars=rows.map(function(p,i){
+    var v=p.bands['25'].vsHold,y=PADT+i*ROW,x=X(v);
+    var x0=Math.min(zero,x),w=Math.max(1,Math.abs(x-zero));
+    return '<rect x="'+x0.toFixed(1)+'" y="'+y+'" width="'+w.toFixed(1)+'" height="'+(ROW-4)+
+      '" rx="2" fill="'+(v>0?'var(--good)':'var(--bad)')+'"><title>'+
+      esc(p.pair+' \u00b7 '+p.chain+' \u00b7 '+pct(v)+' vs holding')+'</title></rect>';
+  }).join('');
+
+  /* ticks at the ends and zero, so the axis reads without a full grid */
+  var ticks=[lo,0,hi].map(function(v){
+    var x=X(v),anchor=v===lo?'start':(v===hi?'end':'middle');
+    return '<line x1="'+x.toFixed(1)+'" y1="'+PADT+'" x2="'+x.toFixed(1)+'" y2="'+(H-PADB)+
+      '" stroke="var(--rule)" stroke-width="1" vector-effect="non-scaling-stroke"/>'+
+      '<text x="'+x.toFixed(1)+'" y="'+(H-5)+'" text-anchor="'+anchor+
+      '" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--soft)">'+
+      (v>0?'+':'')+v.toFixed(0)+'%</text>';
+  }).join('');
+
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" '+
+    'aria-label="One bar per pool showing its result against simply holding the two tokens. '+
+    rows.filter(function(p){return p.bands['25'].vsHold<=0;}).length+' of '+rows.length+
+    ' fall left of the zero line, meaning they lost.">'+
+    ticks+bars+
+    '<line x1="'+zero.toFixed(1)+'" y1="'+PADT+'" x2="'+zero.toFixed(1)+'" y2="'+(H-PADB)+
+      '" stroke="var(--ink)" stroke-width="1" opacity=".45" vector-effect="non-scaling-stroke"/>'+
+    '</svg>';
+}
 
 function render(){
   if(!DATA)return;
@@ -172,8 +258,15 @@ function render(){
   var lost=rows.filter(function(p){return p.bands['25'].vsHold<=0;}).length;
   $('hBig').textContent=lost+' of '+rows.length+' lost to holding';
   $('hSub').textContent=rows.length
-    ? (rows.length-lost)+' beat it. Ranked below, best record first.'
+    ? (rows.length-lost)+' beat it. Biggest result first.'
     : 'Nothing matches that filter.';
+
+  var svg=distChart(rows);
+  $('distWrap').hidden=!svg;
+  if(svg){
+    $('dist').innerHTML=svg;
+    $('distNote').textContent='one bar per pool, at \u00b125%';
+  }
 
   if(!rows.length){$('list').innerHTML='<div class="empty">No pools match. Try widening the filters.</div>';return;}
 
@@ -193,8 +286,13 @@ function render(){
           ' &middot; beat holding in '+p.quartersWon+' of '+p.quartersRated+' quarters</div>'+
         '<div class="bands">'+bands+'</div>'+
         '<div class="qs">'+qs+'</div>'+
+        (function(){var l=lpLink(p);return l
+          ? '<a class="lp" href="'+esc(l.url)+'" target="_blank" rel="noopener nofollow">'+
+            esc(l.label)+'</a>'
+          : '';})()+
       '</div>'+
-      '<div class="score '+cls(v)+'">'+pct(v)+'</div>'+
+      '<div class="scorewrap"><div class="scorelab">\u00b125% band</div>'+
+        '<div class="score '+cls(v)+'">'+pct(v)+'</div></div>'+
     '</div>';
   }).join('');
 }
