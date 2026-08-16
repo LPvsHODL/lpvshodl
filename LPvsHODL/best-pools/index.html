@@ -76,6 +76,7 @@ select,input[type=search]{background:var(--field);color:var(--ink);border:1px so
 .bands{display:flex;gap:14px;font-family:"IBM Plex Mono",monospace;font-size:13px;
   flex-wrap:wrap;margin-top:7px}
 .bands span{color:var(--soft)}
+.bands span.vtag{opacity:.75;font-size:12px}
 .bands b{font-weight:500}
 .up{color:var(--good)} .down{color:var(--bad)}
 .scorewrap{text-align:right}
@@ -274,10 +275,16 @@ function render(){
     var v=p.bands['25'].vsHold, won=v>0;
     var qs=p.quarters.map(function(x){
       return '<div class="q'+(x===true?' win':x===false?' loss':'')+'"></div>';}).join('');
-    var bands=[10,25,50].map(function(b){
-      var x=p.bands[String(b)];
-      return '<span>&plusmn;'+b+'% <b class="'+cls(x.vsHold)+'">'+pct(x.vsHold)+'</b></span>';
-    }).join('');
+    /* A v2 pair has no band — the position covers every price there is — so
+       three identical figures would be three lies rather than one truth. It gets
+       one number and says why. */
+    var bands=(p.version==='v2')
+      ? '<span>full range <b class="'+cls(v)+'">'+pct(v)+'</b></span>'+
+        '<span class="vtag">v2 &middot; no range to set, and the fee maths is exact</span>'
+      : [10,25,50].map(function(b){
+          var x=p.bands[String(b)];
+          return '<span>&plusmn;'+b+'% <b class="'+cls(x.vsHold)+'">'+pct(x.vsHold)+'</b></span>';
+        }).join('');
     return '<div class="row'+(won?'':' lost')+'">'+
       '<div class="rmain">'+
         '<div class="pair">'+esc(p.pair)+'</div>'+
@@ -291,7 +298,8 @@ function render(){
             esc(l.label)+'</a>'
           : '';})()+
       '</div>'+
-      '<div class="scorewrap"><div class="scorelab">\u00b125% band</div>'+
+      '<div class="scorewrap"><div class="scorelab">'+
+        (p.version==='v2'?'full range':'\u00b125% band')+'</div>'+
         '<div class="score '+cls(v)+'">'+pct(v)+'</div></div>'+
     '</div>';
   }).join('');
