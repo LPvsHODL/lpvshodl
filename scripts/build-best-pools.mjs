@@ -38,6 +38,22 @@ const DAYS = 90;                /* headline window */
 const YEAR = 365;               /* for the quarter-by-quarter record */
 const QUARTERS = 4;
 const MIN_TVL = 250000;         /* below this the numbers stop meaning anything */
+
+/* The hard limit that makes any of this honest. The pool's fee record measures
+   fees per unit of liquidity ALREADY in the pool, which only describes what you
+   would have earned if your arrival did not change the pool. Drop a $10,000
+   position into a thin pool and it can be a large share of the liquidity near
+   the trading price — the maths then credits it fees it could only earn by
+   being that big, while ignoring that being that big would have diluted the
+   fee rate for everyone including itself.
+   The symptom is spectacular and obviously false: a WBTC/WETH 0.01% pool came
+   out at +420% against holding over 90 days at a tight band. Tight bands
+   inflate worst, because the same dollars buy more liquidity.
+   So: if the modelled position would be more than this share of the pool's
+   in-range liquidity, the backtest is fiction and the pool is dropped. Five
+   percent is already generous — a realistic retail position in a healthy pool
+   sits far below one percent. */
+const MAX_SHARE = 0.05;
 const MIN_DAYS = 60;            /* too little history to judge */
 const PER_CHAIN = 40;
 
@@ -137,7 +153,8 @@ function runBand(FEEQ, rows, d0, d1, widthPct) {
   return {
     vsHold: +(((total / hold) - 1) * 100).toFixed(2),
     feesUSD: Math.round(fees),
-    inRangePct: seen ? Math.round((walk.inN / seen) * 100) : 0
+    inRangePct: seen ? Math.round((walk.inN / seen) * 100) : 0,
+    share: walk.share            /* fraction of the pool this position would be */
   };
 }
 
@@ -158,10 +175,19 @@ async function assess(chain, pool, FEEQ) {
   if (recent.length < MIN_DAYS) return null;
 
   const bands = {};
+  let worstShare = 0;
   for (const b of BANDS) {
     const r = runBand(FEEQ, recent, d0, d1, b);
     if (!r) return null;
+    worstShare = Math.max(worstShare, r.share || 0);
     bands[b] = r;
+  }
+  /* Too big a fish for this pond — see MAX_SHARE. Reported rather than silently
+     dropped, because a wave of these means the pool universe needs rethinking,
+     not that the filter is working. */
+  if (worstShare > MAX_SHARE) {
+    return { rejected: 'position would be ' + Math.round(worstShare * 100) +
+                       '% of this pool\'s liquidity' };
   }
 
   /* Quarter by quarter, at the middle band. One good quarter is luck; four is
@@ -207,7 +233,8 @@ async function main() {
       looked++;
       try {
         const r = await assess(chain, p, FEEQ);
-        if (r) { pools.push(r); console.error(`  kept ${r.pair} ${r.chain}`); }
+        if (r && r.rejected) { skipped++; console.error(`  dropped ${p.address}: ${r.rejected}`); }
+        else if (r) { pools.push(r); console.error(`  kept ${r.pair} ${r.chain}`); }
         else { skipped++; }
       } catch (e) { skipped++; console.error(`  failed ${p.address}: ${e.message}`); }
       await sleep(400);
@@ -232,6 +259,7 @@ async function main() {
     console.error('no pools survived — refusing to overwrite a good file with an empty one');
     process.exit(1);
   }
+  payload.pools.forEach(p => { for (const b of BANDS) delete p.bands[b].share; });
   fs.writeFileSync(OUT, JSON.stringify(payload, null, 1));
   console.error(`wrote ${OUT}: ${pools.length} pools, ${won} beat holding`);
 }
