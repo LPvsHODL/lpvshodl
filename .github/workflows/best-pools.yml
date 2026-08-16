@@ -1,0 +1,46 @@
+# Rebuilds the Best pools ranking every night and commits the result.
+#
+# Why a scheduled job and not a live page: each pool costs a paid data query and
+# the ranking needs hundreds, so working it out per visitor would burn the
+# monthly allowance in an afternoon. This runs once, writes a plain JSON file
+# into the repo, and Cloudflare Pages redeploys it like any other change.
+#
+# It needs no secrets. Pool history comes from the deployed site's own endpoint,
+# which already holds the data key.
+name: Build best pools
+
+on:
+  schedule:
+    - cron: '17 4 * * *'      # nightly, off the hour to dodge the rush
+  workflow_dispatch:           # and a "Run workflow" button for testing
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Work out the rankings
+        run: node scripts/build-best-pools.mjs
+
+      - name: Commit if anything changed
+        run: |
+          git config user.name  "best-pools bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add LPvsHODL/best-pools.json
+          # --quiet exits non-zero when there is nothing staged, which is the
+          # normal case on a quiet day and must not fail the run.
+          if git diff --cached --quiet; then
+            echo "rankings unchanged"
+          else
+            git commit -m "Update best pools ranking"
+            git push
+          fi
