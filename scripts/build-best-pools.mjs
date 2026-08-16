@@ -287,10 +287,18 @@ async function main() {
     }
   }
 
-  /* Sort by consistency first, then by the middle band. A pool that beat holding
-     in every quarter outranks one that had a single spectacular run. */
+  /* Sort by the year's result at the middle band, consistency only as a
+     tiebreak. This used to rank by consistency first, so that a single
+     spectacular quarter could not top the list — a sound worry when the
+     headline covered 90 days. It stopped making sense once the window became a
+     full year, because a year already contains all four quarters: a pool that
+     blew up in one of them shows a worse annual figure without any help. All
+     the tier sort did was put a pool that gained nothing above one that gained
+     twelve percent, which reads as broken and is impossible to defend. The
+     quarter record stays visible next to each pool, where it belongs — as a
+     sign of how reliable the number is, not as the ranking itself. */
   pools.sort((a, b) =>
-    (b.quartersWon - a.quartersWon) || (b.bands[25].vsHold - a.bands[25].vsHold));
+    (b.bands[25].vsHold - a.bands[25].vsHold) || (b.quartersWon - a.quartersWon));
 
   const won = pools.filter(p => p.bands[25].vsHold > 0).length;
   const payload = {
