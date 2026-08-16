@@ -113,25 +113,60 @@ async function getJSON(url, tries = 3) {
   return null;
 }
 
+/* Which exchanges to ask for by name, per chain. The plain top-pools list is
+   ranked by size and is almost entirely v3, so v2 pairs never surfaced — the
+   first run offered three of them out of 121 candidates. Asking the v2 exchange
+   directly is the only way to see them. Anything that 404s or returns nothing
+   simply contributes no candidates, so a wrong guess here costs coverage rather
+   than correctness. */
+const NAMED_DEXES = {
+  /* Ethereum only, and Uniswap only. The v2 endpoint holds one confirmed data
+     source and it is Uniswap's, so pairs from anywhere else would be fetched and
+     then fail — wasted calls and a log full of noise.
+     SushiSwap is deliberately absent for a second reason worth remembering: its
+     pairs charge the same 0.3% but only 0.25% reaches the liquidity provider,
+     the rest going to stakers. Measuring them as Uniswap pairs would overstate
+     what an LP earned by a fifth. Adding Sushi means adding its own data source
+     AND its own fee split, not just its name to this list. */
+  eth: ['uniswap_v2'],
+  base: [],
+  arbitrum: [],
+  optimism: [],
+  polygon_pos: [],
+  avax: []
+};
+
 /* Candidate pools, biggest first. GeckoTerminal is free and unkeyed, so this
    costs nothing; the paid queries only happen for pools that survive filtering. */
 async function candidates(net) {
   const out = [];
-  for (const page of [1, 2, 3]) {
-    const j = await getJSON(`https://api.geckoterminal.com/api/v2/networks/${net}/pools?page=${page}`);
+  const seen = {};
+  const take = (j) => {
     for (const d of (j && j.data) || []) {
       const a = d.attributes || {};
       const tvl = Number(a.reserve_in_usd) || 0;
       if (tvl < MIN_TVL) continue;
       const addr = String(a.address || '').toLowerCase();
-      if (!/^0x[0-9a-f]{40}$/.test(addr)) continue;
-      out.push({
-        address: addr,
-        name: a.name || '',
-        tvl,
-        dex: ((d.relationships || {}).dex || {}).data?.id || ''
-      });
+      if (!/^0x[0-9a-f]{40}$/.test(addr) || seen[addr]) continue;
+      seen[addr] = 1;
+      out.push({ address: addr, name: a.name || '', tvl,
+                 dex: ((d.relationships || {}).dex || {}).data?.id || '' });
     }
+  };
+
+  for (const dex of (NAMED_DEXES[net] || [])) {
+    for (const page of [1, 2]) {
+      const j = await getJSON(`https://api.geckoterminal.com/api/v2/networks/${net}` +
+                              `/dexes/${dex}/pools?page=${page}`);
+      if (!j || !j.data || !j.data.length) break;
+      take(j);
+      await sleep(2500);
+    }
+  }
+
+  for (const page of [1, 2, 3]) {
+    const j = await getJSON(`https://api.geckoterminal.com/api/v2/networks/${net}/pools?page=${page}`);
+    take(j);
     await sleep(2500);
   }
   return out.sort((x, y) => y.tvl - x.tvl).slice(0, PER_CHAIN);
@@ -227,18 +262,19 @@ async function assessV2(chain, pool) {
   const from = Math.floor(Date.now() / 1000) - YEAR * 86400;
   const j = await getJSON(`${SITE}/api/pool-v2?chain=${chain}` +
                           `&address=${pool.address}&from=${from}`);
-  if (!j || j.error || j.source !== 'subgraph-v2') {
-    return { rejected: 'no v2 history', quiet: true };
-  }
+  if (!j) return { rejected: 'v2 endpoint did not answer' };
+  if (j.error) return { rejected: 'v2 endpoint said: ' + j.error };
+  if (j.source !== 'subgraph-v2') return { rejected: 'v2 endpoint returned an unexpected shape' };
   const days = (j.days || []).filter(d => d.p0 > 0 && d.p1 > 0);
   if (days.length < MIN_DAYS) {
-    return { rejected: 'only ' + days.length + ' days of usable history', quiet: true };
+    return { rejected: 'v2 pair had only ' + days.length + ' usable days of ' +
+                       (j.rawRows || 0) + ' rows' };
   }
 
   const feeRate = j.pool.feeTier / 1000000;
   const recent = days.slice(-DAYS);
   const r = runV2(recent, feeRate);
-  if (!r) return { rejected: 'could not be priced', quiet: true };
+  if (!r) return { rejected: 'v2 pair could not be priced' };
   if (r.share > MAX_SHARE) {
     return { rejected: 'position would be ' + (r.share * 100).toFixed(1) + '% of this pair' };
   }
