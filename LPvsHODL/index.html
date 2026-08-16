@@ -2,6 +2,18 @@
 <html lang="en" data-theme="light" data-view="simple">
 <head>
 <meta charset="utf-8">
+<script>
+/* Runs before anything paints, so there is no flash of the wrong theme.
+   Order of authority: a choice the visitor made here, then the device's own
+   dark-mode setting, then light. Only an explicit tap on the toggle is ever
+   saved — following the device is not a decision the visitor made, and storing
+   it would freeze them on whatever their phone happened to be set to today. */
+(function(){try{
+  var saved=localStorage.getItem('lvh-theme');
+  var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme',saved||(dark?'dark':'light'));
+}catch(e){}})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Impermanent Loss Calculator &amp; Liquidity Pool Backtest — LPvsHODL</title>
 <meta name="description" content="Free impermanent loss calculator and LP backtester. Paste any Uniswap, PancakeSwap or SushiSwap pool and see fees earned in each token, impermanent loss, days out of range, and whether providing liquidity actually beat holding.">
@@ -710,9 +722,9 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
         <div class="body" id="rebalBody" hidden>
           <div class="row">
             <div class="field" style="margin:0"><label for="rebalCost">Cost per re-centre (USD)</label><input id="rebalCost" type="number" step="any" min="0" value="0"></div>
-            <div class="field" style="margin:0"><label for="rebalWait">Wait days before re-centring</label><input id="rebalWait" type="number" step="1" min="0" max="60" value="0"></div>
+            <div class="field" style="margin:0"><label for="rebalWait">Cooldown days between re-centres</label><input id="rebalWait" type="number" step="1" min="0" max="60" value="7"></div>
           </div>
-          <p class="hint">Every re-centre is two swaps and a fresh position, so it costs gas and it locks in the loss on whichever token the price ran away from. The wait lets price come back on its own before you pay to chase it.</p>
+          <p class="hint">Re-centres when the position has been out of range for more than 7 of the last 14 days &mdash; persistently out, rather than out for a day. Every re-centre is two swaps and a fresh position, so it costs gas and it locks in the loss on whichever token the price ran away from. The cooldown stops a price sawing across a bound from paying for a trade every other day.</p>
         </div>
       </div>
     </fieldset>
@@ -933,7 +945,8 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
     </details>
     <details>
       <summary>Does this include gas?</summary>
-      <p>No. Entering, exiting and collecting fees all cost gas, and on Ethereum mainnet those costs can exceed a year of fee income on a small position. Treat every result here as a ceiling and subtract your own transaction costs.</p>
+      <p>Only if you tell it what yours are. There is a gas field in the detail view, and whatever you put there is subtracted from the result and shown on its own line. It starts at zero, so out of the box every figure here is a ceiling with no costs taken off.</p>
+      <p>It starts at zero deliberately rather than guessing for you: a round trip costs pennies on Base and can cost tens of dollars on Ethereum mainnet, and on a small mainnet position that can exceed a year of fee income. Put your own number in — a made-up default would be its own kind of wrong answer.</p>
     </details>
     <details>
       <summary>Can past results tell me which pool to enter?</summary>
@@ -970,7 +983,7 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
   <h2>Concentrated liquidity makes both effects larger</h2>
   <p>Uniswap v3 and the many protocols that copied it let you concentrate your deposit into a price band instead of spreading it across every possible price. Inside that band you earn far more fees per dollar. Outside it you earn nothing at all, and your position sits entirely in whichever token lost ground.</p>
   <p>This is the trade newcomers underestimate. A narrow range can multiply your fee income several times over and can also convert your entire position into the wrong token during a single week's move. The tool reports what share of days your position actually spent earning, because that one figure explains most of the difference between a pool that worked and one that did not.</p>
-  <p>You can also switch on range re-centring, which models closing and reopening the position each time price escapes your band. It keeps you earning, and it charges you for the privilege: gas each time, plus the realised loss on the token that ran away. Both are counted.</p>
+  <p>You can also switch on range re-centring, which models closing and reopening the position once it has spent more than 7 of the last 14 days outside your band. It keeps you earning, and it charges you for the privilege: gas each time, plus the realised loss on the token that ran away. Both are counted. Where the pool publishes a fee record, each stretch between re-centres is priced from that record and the stretches are added up, so re-centred results are as real as fixed ones.</p>
 
   <h2>Why we compare against more than just holding both tokens</h2>
   <p>The standard comparison — pool versus holding the two tokens you deposited — flatters liquidity provision, because it quietly assumes you would have bought a 50/50 basket anyway. Most people would not have. So the results also compare against holding each token on its own, and against not buying anything at all.</p>
@@ -1088,18 +1101,26 @@ var LVH = (function () {
   function getJSON(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
 
   /* ---------- theme ---------- */
-  function applyTheme(t) {
+  function applyTheme(t, remember) {
     document.documentElement.setAttribute('data-theme', t);
     var tx = document.getElementById('themeText'), ic = document.getElementById('themeIcon');
     if (tx) tx.textContent = (t === 'dark') ? 'Light' : 'Dark';
     if (ic) ic.textContent = (t === 'dark') ? '\u2600' : '\u25D7';
-    set(LS.theme, t);
+    if (remember) set(LS.theme, t);
+  }
+  function deviceTheme() {
+    try { return (window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; }
+    catch (e) { return 'light'; }
   }
   function initTheme() {
-    applyTheme(get(LS.theme, 'light'));
+    /* The bootstrap in <head> already set the attribute; this only syncs the
+       button label and wires the toggle. Following the device stays unsaved so
+       the site keeps tracking it if the visitor later changes their phone. */
+    applyTheme(get(LS.theme, null) || deviceTheme(), false);
     var b = document.getElementById('theme');
     if (b) b.addEventListener('click', function () {
-      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true);
     });
   }
 
@@ -1530,6 +1551,22 @@ function dv(m,usd,dp){
   if(!p)return money(usd,null,dp);
   return tok(usd/p)+' '+esc(denomSym(m));
 }
+
+/* The fee figure, and only the fee figure, when it came from the estimate.
+   Everything else on the page is arithmetic on prices we know; this one number
+   rests on a method measured 9x high on one real pool and 20x low on another.
+   Printing it to the dollar lends it a precision it has not earned, and a badge
+   underneath does not undo a figure that looks exact. So it is rounded hard to
+   a couple of significant figures and marked approximate. No invented range:
+   spanning the measured error either way would be a factor of 180, which is not
+   a range, it is noise dressed as arithmetic. */
+function dvFee(m,usd,dp){
+  if(m.feeSrc==='exact')return dv(m,usd,dp);
+  var mag=Math.abs(usd);
+  if(!(mag>0))return dv(m,usd,dp);
+  var step=Math.pow(10,Math.floor(Math.log10(mag))-1);
+  return '\u2248 '+dv(m,Math.round(usd/step)*step,0);
+}
 function dsigned(m,usd){
   var p=denomPx(m);
   if(!p)return signed(usd);
@@ -1909,6 +1946,65 @@ function exactOrientation(){
   return {aIsToken0:direct<=inverse,d0:d0,d1:d1,idx:idx,subPrice:sub,entry:e};
 }
 
+/* Fees actually paid to a position that moved. Each leg is a fixed position
+   with its own band, its own size and its own stretch of time, which is exactly
+   what the single-position walk already handles — so walk each leg over its own
+   hours and add the results. One row before each leg's start is included so the
+   first hour has a previous reading to difference against. */
+function exactFeesSegments(segs){
+  var X=S.exact;if(!X||!segs||!segs.length)return null;
+  var o=exactOrientation();if(!o)return null;
+  var hours=X.hours;if(hours.length<24)return null;
+
+  var f0=0,f1=0,inN=0,outN=0,shSum=0,shN=0,priced=0;
+
+  for(var s=0;s<segs.length;s++){
+    var g=segs[s];
+    if(!(g.hi>g.lo)||!(g.val>0)||!(g.t1>g.t0))continue;
+
+    /* the site's bounds are on A-priced-in-B; the pool's are on token1 per token0 */
+    var Plo,Phi;
+    if(o.aIsToken0){Plo=g.lo;Phi=g.hi;}
+    else{Plo=1/g.hi;Phi=1/g.lo;}
+    var rawLo=FEEQ.raw(Plo,o.d0,o.d1),rawHi=FEEQ.raw(Phi,o.d0,o.d1);
+    if(!(rawHi>rawLo))continue;
+
+    var a=-1,b=-1;
+    for(var i=0;i<hours.length;i++){
+      if(a<0&&hours[i].t>=g.t0)a=i;
+      if(hours[i].t<=g.t1)b=i;
+    }
+    if(a<0||b<=a)continue;
+    var win=hours.slice(Math.max(0,a-1),b+1);
+    if(win.length<2)continue;
+
+    /* size this leg from the pool's own price where the leg opened */
+    var rawP=FEEQ.priceAtTick(Number(win[0].tick));
+    if(!(rawP>0))continue;
+    var usdT1=o.aIsToken0?g.pb:g.pa;
+    if(!(usdT1>0))continue;
+    var valT1=(g.val/usdT1)*Math.pow(10,o.d1);
+    var L=FEEQ.liquidityForValue(valT1,rawP,rawLo,rawHi);
+    if(!(L>0)||!isFinite(L))continue;
+
+    var w=FEEQ.walk(win,L,FEEQ.tickAtPrice(rawLo),FEEQ.tickAtPrice(rawHi));
+    f0+=w.f0;f1+=w.f1;inN+=w.inN;outN+=w.outN;
+    if(w.share>0){shSum+=w.share;shN++;}
+    priced++;
+  }
+
+  /* All or nothing. A part-priced run would silently mix the record with
+     nothing at all for the legs that failed, and read as a real figure. */
+  if(priced!==segs.length)return null;
+
+  var t0=f0/Math.pow(10,o.d0), t1=f1/Math.pow(10,o.d1);
+  return {
+    fA:o.aIsToken0?t0:t1,
+    fB:o.aIsToken0?t1:t0,
+    inN:inN,totalN:inN+outN,share:shN?shSum/shN:0
+  };
+}
+
 /* Fees actually paid to a position with these bounds, in token A and B. */
 function exactFees(down,up,cl){
   var X=S.exact;if(!X)return null;
@@ -1971,7 +2067,22 @@ function run(down,up,forceCl){
   else{eA=(V0/2)/pa0;eB=(V0/2)/pb0;}
 
   var fA=0,fB=0,inDays=0,reN=0,reSpend=0,shSum=0,shN=0,dead=false;
-  var cLo=lo,cHi=hi,cL=L,outRun=0;
+  var cLo=lo,cHi=hi,cL=L;
+
+  /* Re-centring trigger. The old rule counted days outside the band in an
+     unbroken run and reset that run to zero on any single day back inside, so a
+     position flicking in and out — dead most of the time — never re-centred at
+     all. This asks the more useful question: over the last fortnight, has this
+     been outside more often than not? A cooldown then stops a price sawing
+     across a bound from paying for a trade every other day. */
+  var RE_WINDOW=14, RE_OUT_DAYS=7;
+  var outFlags=[],sinceRe=1e9;
+
+  /* Each stretch the position spends under one band, so the real fee record can
+     price them one at a time and add them up. A position that never re-centres
+     is simply a single stretch. */
+  var segs=[],cur={t0:slice.length?slice[0].t:0,lo:cLo,hi:cHi,val:V0,pa:pa0,pb:pb0};
+
   slice.forEach(function(d,i){
     var r=d.pa/d.pb,live=(!cl)||(r>=cLo&&r<=cHi);
     if(cl&&live)inDays++;
@@ -1983,26 +2094,35 @@ function run(down,up,forceCl){
       shSum+=sh;shN++;
       var f=d.vol*fee*sh;fA+=(f/2)/d.pa;fB+=(f/2)/d.pb;}
     if(!cl||!reOn||dead)return;
-    if(live){outRun=0;return;}
-    outRun++;
-    if(outRun<=reWait)return;
-    /* Price has stayed outside long enough: sell out at today's prices, pay the
-       cost, and open the same-width band around wherever price now sits. */
+
+    sinceRe++;
+    outFlags.push(live?0:1);
+    if(outFlags.length>RE_WINDOW)outFlags.shift();
+    var outN=0;for(var k=0;k<outFlags.length;k++)outN+=outFlags[k];
+    if(outN<=RE_OUT_DAYS)return;          /* not persistently out yet */
+    if(sinceRe<=reWait)return;            /* re-centred too recently */
+
+    /* Persistently outside: sell out at today's prices, pay the cost, and open
+       the same-width band around wherever price now sits. */
     var am=LVH.v3Amounts(cL,r,cLo,cHi);
     var val=am[0]*d.pa+am[1]*d.pb;
     val-=reCost;
     if(!(val>0)){dead=true;return;}
-    reSpend+=reCost;reN++;outRun=0;
+    reSpend+=reCost;reN++;sinceRe=0;outFlags=[];
     cLo=r*(1-down/100);cHi=r*(1+up/100);
     cL=LVH.v3L(val/d.pb,r,cLo,cHi);
+    cur.t1=d.t;segs.push(cur);
+    cur={t0:d.t,lo:cLo,hi:cHi,val:val,pa:d.pa,pb:d.pb};
   });
+  if(slice.length){cur.t1=slice[slice.length-1].t;segs.push(cur);}
 
   /* Swap the estimate for what the pool actually paid, when we have it.
-     Re-centring is excluded: it changes the position's liquidity and bounds
-     part-way through, which this record cannot express. */
+     Re-centring is included: a re-centred position is a run of ordinary fixed
+     positions end to end, and the record prices each one exactly as it prices a
+     single position, so the legs are walked separately and added up. */
   var feeSrc='estimate';
-  if(S.exact&&!reOn){
-    var ex=exactFees(down,up,cl);
+  if(S.exact){
+    var ex=(reOn&&cl&&segs.length>1)?exactFeesSegments(segs):exactFees(down,up,cl);
     if(ex&&isFinite(ex.fA)&&isFinite(ex.fB)){
       fA=ex.fA;fB=ex.fB;feeSrc='exact';
       if(cl&&ex.totalN>0)inDays=Math.round(slice.length*ex.inN/ex.totalN);
@@ -2688,7 +2808,7 @@ function update(){
   $('lCostLab').textContent=(cost<0?'Cost of providing liquidity':'Gain on the tokens themselves');
   $('lCost').textContent=(cost<0?'\u2212':'+')+dabs(m,cost);
   $('lCost').className=(cost<0?'neg':'pos');
-  $('lFee').textContent='+'+dv(m,m.feeV);
+  $('lFee').textContent='+'+dvFee(m,m.feeV);
   $('lFee').className='pos';
   $('lGasRow').hidden=!(gas>0);
   if(gas>0){$('lGas').textContent='\u2212'+dv(m,gas);$('lGas').className='neg';}
@@ -2711,10 +2831,10 @@ function update(){
     if(d1>0&&d1<1&&Math.abs(vals[vi])>=1000)dp=2;}
   $('posV').textContent=dv(m,m.posV+m.feeV,dp);
   $('posParts').innerHTML=
-    '<span>'+dv(m,m.posV,dp)+' in tokens</span><span>+ '+dv(m,m.feeV,dp)+' in fees</span>';
+    '<span>'+dv(m,m.posV,dp)+' in tokens</span><span>+ '+dvFee(m,m.feeV,dp)+' in fees</span>';
   bar('posBarA','posBarB',m.pA*m.pa1,m.pB*m.pb1);
   legs('posLegs',m.symA,m.symB,m.pA,m.pB,m.pA*m.pa1,m.pB*m.pb1);
-  $('feeV').textContent=dv(m,m.feeV,dp);
+  $('feeV').textContent=dvFee(m,m.feeV,dp);
   bar('feeBarA','feeBarB',m.fA*m.pa1,m.fB*m.pb1);
   legs('feeLegs',m.symA,m.symB,m.fA,m.fB,m.fA*m.pa1,m.fB*m.pb1);
   $('holdV').textContent=dv(m,m.hold,dp);
@@ -2798,7 +2918,7 @@ function update(){
   }else{
     sb.hidden=false;sb.className='srcbadge est';
     sb.innerHTML='\u25cb <b>Estimated fees</b> \u00b7 '+
-      (m.reOn?'re-centring can\u2019t use the real record':'no fee record for this pool')+
+      'no fee record for this pool'+
       ' \u2014 treat as a rough guide';
   }
   renderEstWarn(m);
@@ -2827,13 +2947,11 @@ function renderEstWarn(m){
   if(m.feeSrc==='exact'||S.exactState==='loading'){w.hidden=true;return;}
   w.hidden=false;
   w.innerHTML='<strong>The fee figure here is an estimate.</strong> '+
-    (m.reOn
-      ? 'Re-centring changes the position part-way through, which the pool\u2019s own fee record can\u2019t describe, so this falls back to the estimate. '
-      : 'This pool\u2019s own fee record didn\u2019t come back, so this splits the pool\u2019s trading fees by your share of its total value \u2014 the method every other calculator uses. ')+
+    'This pool\u2019s own fee record didn\u2019t come back, so this splits the pool\u2019s trading fees by your share of its total value \u2014 the method every other calculator uses. '+
     'It takes no account of how much liquidity is sitting near the trading price, which is what actually decides your cut. '+
     'On the pools we have checked against the real record it came out about <strong>9\u00d7 too high</strong> on a busy, tightly-managed pool and <strong>20\u00d7 too low</strong> on a neglected one. '+
     'The error runs in both directions and there is no correction factor, so read this as an order of magnitude, not a number to size a position against.'+
-    (m.reOn?'':' Ethereum and Base pools are normally read from the real record and show a green badge instead \u2014 if you are on one of those, the record was unavailable this time and reloading may fix it.');
+    ' Pools on the supported chains are normally read from the real record and show a green badge instead \u2014 if you are on one of those, the record was unavailable this time and reloading may fix it.';
 }
 
 /* ---------------------------------------------------------------------------
