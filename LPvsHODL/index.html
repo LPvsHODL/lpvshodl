@@ -589,6 +589,9 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
 .wi .story{font-size:13.5px;line-height:1.55;color:var(--soft);margin:13px 0 0}
 .wi .story strong{color:var(--ink)}
 .wi svg{width:100%;height:auto;display:block;margin:18px 0 4px;overflow:visible}
+.tllegend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--soft)}
+.tllegend span{display:flex;align-items:center;gap:6px}
+.tllegend i.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
 .wi .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--soft);margin-top:2px}
 .wi .legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
 @media(max-width:560px){.wi .grid{grid-template-columns:1fr}}
@@ -828,6 +831,17 @@ footer.site .cols a.x svg{width:11px;height:11px;fill:currentColor}
       <div class="note mutbox" id="ilNote">Load a pool to run the backtest.</div>
       <div class="note mutbox" id="rangeNote" hidden></div>
       <div class="note mutbox" id="fxNote" hidden></div>
+    </div>
+
+    <div class="card" id="tlCard" hidden style="margin-top:16px">
+      <h2>Fees against impermanent loss</h2>
+      <p class="hint" style="margin:-4px 0 12px">The two halves of the answer, day by day. Fees only ever climb. The gap to simply holding swings with the price. Whether you came out ahead is just which line ended higher.</p>
+      <div class="tllegend">
+        <span><i class="sw" style="background:var(--accent)"></i><span id="tlLegFee">Fees earned</span></span>
+        <span><i class="sw" style="background:var(--warn)"></i>Gap to holding</span>
+      </div>
+      <div class="wi" id="tlChart"></div>
+      <p class="hint" id="tlNote" style="margin:8px 0 0"></p>
     </div>
 
     <div class="card" id="wiCard" hidden style="margin-top:16px">
@@ -1880,16 +1894,24 @@ var FEEQ = (function(){
   }
 
   /* hours: ascending [{t,tick,liquidity,feeGrowthGlobal0X128,feeGrowthGlobal1X128}] */
-  function walk(hours,L,tickLo,tickHi){
+  /* Pass `stamps` to also collect the running total after every row. A chart of
+     fees over time has to come from the same walk that produces the headline
+     figure — deriving the shape some other way and scaling it to match would be
+     a drawing of an assumption, not of the record. A stamp is written even for
+     rows spent out of range, so the line goes flat there rather than skipping,
+     which is exactly what a reader needs to see. */
+  function walk(hours,L,tickLo,tickHi,stamps){
     var f0=0,f1=0,inN=0,outN=0,shSum=0,shN=0;
     for(var i=1;i<hours.length;i++){
       var h=hours[i],t=Number(h.tick);
-      if(!(t>=tickLo&&t<tickHi)){outN++;continue;}
-      inN++;
-      f0+=feesFrom(delta(hours[i-1].feeGrowthGlobal0X128,h.feeGrowthGlobal0X128),L);
-      f1+=feesFrom(delta(hours[i-1].feeGrowthGlobal1X128,h.feeGrowthGlobal1X128),L);
-      var act=Number(h.liquidity);
-      if(act>0){shSum+=L/(L+act);shN++;}
+      if(t>=tickLo&&t<tickHi){
+        inN++;
+        f0+=feesFrom(delta(hours[i-1].feeGrowthGlobal0X128,h.feeGrowthGlobal0X128),L);
+        f1+=feesFrom(delta(hours[i-1].feeGrowthGlobal1X128,h.feeGrowthGlobal1X128),L);
+        var act=Number(h.liquidity);
+        if(act>0){shSum+=L/(L+act);shN++;}
+      }else outN++;
+      if(stamps)stamps.push({t:Number(h.t),f0:f0,f1:f1});
     }
     return{f0:f0,f1:f1,inN:inN,outN:outN,share:shN?shSum/shN:0};
   }
@@ -1956,7 +1978,7 @@ function exactFeesSegments(segs){
   var o=exactOrientation();if(!o)return null;
   var hours=X.hours;if(hours.length<24)return null;
 
-  var f0=0,f1=0,inN=0,outN=0,shSum=0,shN=0,priced=0;
+  var f0=0,f1=0,inN=0,outN=0,shSum=0,shN=0,priced=0,stamps=[];
 
   for(var s=0;s<segs.length;s++){
     var g=segs[s];
@@ -1987,7 +2009,11 @@ function exactFeesSegments(segs){
     var L=FEEQ.liquidityForValue(valT1,rawP,rawLo,rawHi);
     if(!(L>0)||!isFinite(L))continue;
 
-    var w=FEEQ.walk(win,L,FEEQ.tickAtPrice(rawLo),FEEQ.tickAtPrice(rawHi));
+    var st=[];
+    var w=FEEQ.walk(win,L,FEEQ.tickAtPrice(rawLo),FEEQ.tickAtPrice(rawHi),st);
+    /* each leg's walk restarts at zero, so lift it onto the running total */
+    var base0=f0,base1=f1;
+    st.forEach(function(p){stamps.push({t:p.t,f0:base0+p.f0,f1:base1+p.f1});});
     f0+=w.f0;f1+=w.f1;inN+=w.inN;outN+=w.outN;
     if(w.share>0){shSum+=w.share;shN++;}
     priced++;
@@ -2001,8 +2027,18 @@ function exactFeesSegments(segs){
   return {
     fA:o.aIsToken0?t0:t1,
     fB:o.aIsToken0?t1:t0,
-    inN:inN,totalN:inN+outN,share:shN?shSum/shN:0
+    inN:inN,totalN:inN+outN,share:shN?shSum/shN:0,
+    series:feeSeries(stamps,o)
   };
+}
+
+/* Raw per-token running totals -> the site's A/B tokens, ascending by time. */
+function feeSeries(stamps,o){
+  var s0=Math.pow(10,o.d0),s1=Math.pow(10,o.d1);
+  return stamps.map(function(p){
+    var a=p.f0/s0,b=p.f1/s1;
+    return {t:p.t,fA:o.aIsToken0?a:b,fB:o.aIsToken0?b:a};
+  });
 }
 
 /* Fees actually paid to a position with these bounds, in token A and B. */
@@ -2032,12 +2068,14 @@ function exactFees(down,up,cl){
   var L=FEEQ.liquidityForValue(valT1,rawP,rawLo,rawHi);
   if(!(L>0)||!isFinite(L))return null;
 
-  var w=FEEQ.walk(hours,L,FEEQ.tickAtPrice(rawLo),FEEQ.tickAtPrice(rawHi));
+  var stamps=[];
+  var w=FEEQ.walk(hours,L,FEEQ.tickAtPrice(rawLo),FEEQ.tickAtPrice(rawHi),stamps);
   var t0=w.f0/Math.pow(10,o.d0), t1=w.f1/Math.pow(10,o.d1);
   return {
     fA:o.aIsToken0?t0:t1,
     fB:o.aIsToken0?t1:t0,
-    inN:w.inN,totalN:w.inN+w.outN,share:w.share
+    inN:w.inN,totalN:w.inN+w.outN,share:w.share,
+    series:feeSeries(stamps,o)
   };
 }
 
@@ -2083,8 +2121,21 @@ function run(down,up,forceCl){
      is simply a single stretch. */
   var segs=[],cur={t0:slice.length?slice[0].t:0,lo:cLo,hi:cHi,val:V0,pa:pa0,pb:pb0};
 
+  /* Day by day: what the position was worth in tokens, and what the same
+     starting tokens would have been worth left alone. The gap between the two
+     is impermanent loss, and charting it beside the fees is the whole argument
+     of this site in one picture. Both are recorded here rather than recomputed
+     later, because this loop already carries the re-centred bounds. */
+  var tl=[];
+
   slice.forEach(function(d,i){
     var r=d.pa/d.pb,live=(!cl)||(r>=cLo&&r<=cHi);
+    (function(){
+      var lpV;
+      if(cl){var q=LVH.v3Amounts(cL,r,cLo,cHi);lpV=q[0]*d.pa+q[1]*d.pb;}
+      else{var pv=V0*Math.sqrt((d.pa/pa0)*(d.pb/pb0));lpV=pv;}
+      tl.push({t:d.t,lp:lpV,hold:eA*d.pa+eB*d.pb,pa:d.pa,pb:d.pb});
+    })();
     if(cl&&live)inDays++;
     if(live){
       /* real TVL for that day when the subgraph gave us one, today's TVL otherwise */
@@ -2140,10 +2191,66 @@ function run(down,up,forceCl){
     pA:pA,pB:pB,posV:pA*pa1+pB*pb1,fA:fA,fB:fB,feeV:feeV,
     reOn:reOn,reN:reN,reSpend:reSpend,reWait:reWait,reDead:dead,
     drift:drift,avgShare:shN?(shSum/shN):0,
+    timeline:buildTimeline(tl,(typeof ex!=='undefined'&&ex&&ex.series)?ex.series:null,fA,fB),
     hold:eA*pa1+eB*pb1,rebased:V0*((pa1/pa0)+(pb1/pb0))/2,
     allA:(V0/pa0)*pa1,allB:(V0/pb0)*pb1,
     holdA:eA*pa1,holdB:eB*pb1,pa0:pa0,pb0:pb0,pa1:pa1,pb1:pb1,
     symA:($('symA').value||'A').trim(),symB:($('symB').value||'B').trim()};
+}
+
+/* One row per day: fees earned so far, and how far the position has fallen
+   behind simply holding. When the pool's own record is in use its running total
+   is matched to each day by timestamp. When it is not, the estimate accrues in
+   proportion to the days elapsed, which is all an estimate can honestly claim.
+   The two lines never come from different sources. */
+function buildTimeline(tl,feeRun,fAend,fBend){
+  if(!tl||tl.length<3)return null;
+  var out=[],j=0,run=null;
+  for(var i=0;i<tl.length;i++){
+    var d=tl[i],fA,fB;
+    if(feeRun&&feeRun.length){
+      while(j<feeRun.length&&feeRun[j].t<=d.t){run=feeRun[j];j++;}
+      fA=run?run.fA:0;fB=run?run.fB:0;
+    }else{
+      var frac=(i+1)/tl.length;fA=fAend*frac;fB=fBend*frac;
+    }
+    out.push({t:d.t,fees:fA*d.pa+fB*d.pb,gap:d.lp-d.hold});
+  }
+  return out;
+}
+
+/* Two lines, one axis, zero in the middle: fees only ever climb, the gap to
+   holding only ever swings. Where the climbing line fails to cover the swinging
+   one is the answer the numbers above give in words. Hand-drawn to match the
+   other chart on this page and to avoid pulling in a library. */
+function tlChart(m){
+  var T=m.timeline;if(!T||T.length<3)return '';
+  var W=700,H=190,PADT=10,PADB=16,PADL=2,PADR=2;
+  var lo=0,hi=0;
+  T.forEach(function(p){
+    lo=Math.min(lo,p.gap,p.fees);hi=Math.max(hi,p.gap,p.fees);});
+  if(!(hi>lo))return '';
+  var pad=(hi-lo)*0.1;lo-=pad;hi+=pad;
+  function X(i){return PADL+(W-PADL-PADR)*(i/(T.length-1));}
+  function Y(v){return PADT+(H-PADT-PADB)*(1-(v-lo)/(hi-lo));}
+  var fp='',gp='';
+  T.forEach(function(p,i){
+    fp+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.fees).toFixed(1);
+    gp+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(p.gap).toFixed(1);
+  });
+  var z=Y(0);
+  var last=T[T.length-1];
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" '+
+    'aria-label="Fees earned and the gap to simply holding, day by day. '+
+    'Fees ended at '+Math.round(last.fees)+' dollars and the gap at '+
+    Math.round(last.gap)+' dollars.">'+
+    '<line x1="0" y1="'+z.toFixed(1)+'" x2="'+W+'" y2="'+z.toFixed(1)+
+      '" stroke="var(--soft)" stroke-width="1" opacity=".45" vector-effect="non-scaling-stroke"/>'+
+    '<path d="'+gp+'" fill="none" stroke="var(--warn)" stroke-width="2.5" '+
+      'stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'+
+    '<path d="'+fp+'" fill="none" stroke="var(--accent)" stroke-width="2.5" '+
+      'stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'+
+    '</svg>';
 }
 
 function bar(idA,idB,va,vb){
@@ -2192,6 +2299,7 @@ function emptyState(){
   $('rangeNote').hidden=true;$('fxNote').hidden=true;$('depHint').textContent='';
   $('optbtn').disabled=true;$('optPanel').hidden=true;
   $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;$('srcBadge').hidden=true;
+    $('tlCard').hidden=true;
   $('estWarn').hidden=true;$('denomRow').hidden=true;$('denomNote').hidden=true;$('frNote').hidden=true;
   advSummary();
 }
@@ -2612,6 +2720,21 @@ function renderWhatIf(m){
   bandSync(m);
   $('wiBandKey').hidden=!m.cl;
   $('wiCard').hidden=false;
+
+  /* paint the fees-versus-loss chart from the same result object */
+  (function(){
+    var svg=tlChart(m);
+    $('tlCard').hidden=!svg;
+    if(!svg)return;
+    $('tlChart').innerHTML=svg;
+    $('tlLegFee').textContent=(m.feeSrc==='exact')?'Fees earned (real record)':'Fees earned (estimated)';
+    var last=m.timeline[m.timeline.length-1];
+    $('tlNote').textContent=(last.fees+last.gap>=0)
+      ? 'Fees of '+money(last.fees)+' more than covered a '+money(Math.abs(last.gap))+
+        ' shortfall against holding.'
+      : 'Fees of '+money(last.fees)+' did not cover a '+money(Math.abs(last.gap))+
+        ' shortfall against holding \u2014 the gap is the bigger number, which is the part advertised rates never show.';
+  })();
   wiPaint();
 }
 
@@ -2757,6 +2880,7 @@ function update(){
     $('ilNote').className='note mutbox';$('ilNote').textContent='Only the hold comparison is shown.';
     $('rangeNote').hidden=true;$('fxNote').hidden=true;$('feeFlag').hidden=true;$('aprFlag').hidden=true;
     $('shareRow').hidden=true;$('baseCard').hidden=true;$('wiCard').hidden=true;$('srcBadge').hidden=true;
+    $('tlCard').hidden=true;
   $('estWarn').hidden=true;$('denomRow').hidden=true;$('denomNote').hidden=true;$('frNote').hidden=true;
     return;
   }
@@ -2779,9 +2903,31 @@ function update(){
   }else $('aprFlag').hidden=true;
 
   /* How big is this deposit relative to the pool? Past a point the model stops
-     describing reality: you would be diluting the very fees you are counting. */
+     describing reality: you would be diluting the very fees you are counting.
+
+     Two different measures, and the second is the one that matters. Share of the
+     pool's total money is easy to show but can be wildly reassuring: a pool can
+     hold millions while almost none of it sits near the trading price, and only
+     the money near the price earns anything. When the real fee record is in use
+     the walk reports the position's share of that in-range liquidity, which is
+     the honest denominator.
+     Ignoring this is what let a WBTC/WETH pool report a 420% gain against
+     holding in the rankings — the position was being credited fees it could only
+     have earned by being large enough to have diluted the rate it was earning at.
+     Past 5% the figure is not a forecast of anything. */
   var tvlNow=n('tvl'),shareOfPool=(tvlNow>0)?(m.V0/(tvlNow+m.V0)*100):0;
-  if(shareOfPool>1){
+  var liqShare=(m.feeSrc==='exact')?(m.avgShare*100):0;
+  if(liqShare>5){
+    $('shareFlag').hidden=false;
+    $('shareFlag').innerHTML='<strong>This deposit is too big for this pool.</strong> '+
+      'Your '+money(m.V0)+' would be about <strong>'+liqShare.toFixed(0)+
+      '%</strong> of the money sitting near the trading price \u2014 the only money in a pool '+
+      'that earns anything. The fee figure above assumes the pool carries on paying at the rate '+
+      'it did without you, which money this size would not let it do: you would be splitting the '+
+      'same fees with yourself. Treat the fee number as fiction at this size and try a smaller '+
+      'deposit. The pool may hold far more in total, but most of it can sit far from the price, '+
+      'earning nothing.';
+  }else if(shareOfPool>1){
     $('shareFlag').hidden=false;
     $('shareFlag').innerHTML='Your '+money(m.V0)+' would be <strong>'+shareOfPool.toFixed(1)+
       '%</strong> of this pool. At that size the fee estimate is an upper bound rather than a forecast \u2014 '+
@@ -2908,7 +3054,14 @@ function update(){
   }
   syncRangeUI(false);
   var sb=$('srcBadge');
-  if(m.feeSrc==='exact'){
+  if(m.feeSrc==='exact'&&m.avgShare>0.05){
+    /* The record is real; applying it to a position this size is not. A green
+       badge here would be the worst of both worlds — the authority of a measured
+       number attached to one the warning below calls fiction. */
+    sb.hidden=false;sb.className='srcbadge est';
+    sb.innerHTML='\u25cb <b>Deposit too big for this pool</b> \u00b7 the fee record is real, but a '+
+      'position this size would change the rate it records \u2014 see the note below the numbers';
+  }else if(m.feeSrc==='exact'){
     sb.hidden=false;sb.className='srcbadge exact';
     sb.innerHTML='\u25cf <b>Real fees</b> \u00b7 taken from the pool\u2019s own fee record, '+
       'which is what the contract pays on \u2014 not volume \u00d7 fee tier, which is what advertised rates use';
