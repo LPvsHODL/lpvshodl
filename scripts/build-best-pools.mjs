@@ -137,6 +137,49 @@ async function candidates(net) {
   return out.sort((x, y) => y.tvl - x.tvl).slice(0, PER_CHAIN);
 }
 
+/* A v2 pair, which is a different animal and a simpler one.
+
+   There is no band, because a v2 position covers every price there is. So there
+   is no question of where other people's money sits relative to the trading
+   price, no fee record needed, and no accuracy caveat: your share of the pair is
+   your share of the fees, exactly. This is the one measurement on the site where
+   the easy method is also the right one.
+
+   Impermanent loss still applies, and for a full-range position it has a closed
+   form — the position grows with the square root of the product of both price
+   changes, while holding grows with their average. The gap between a square root
+   and an average IS impermanent loss, which is why it can never be avoided by
+   picking a better pool, only out-earned by fees. */
+function runV2(days, feeRate) {
+  if (days.length < 2) return null;
+  const first = days[0], last = days[days.length - 1];
+  if (!(first.p0 > 0 && first.p1 > 0 && last.p0 > 0 && last.p1 > 0)) return null;
+
+  let fees = 0, shareSum = 0, shareN = 0;
+  for (const d of days) {
+    const tvl = d.tvlUSD;
+    if (!(tvl > 0)) continue;
+    const share = DEPOSIT / (tvl + DEPOSIT);
+    fees += (d.volumeUSD || 0) * feeRate * share;
+    shareSum += share; shareN++;
+  }
+  if (!isFinite(fees)) return null;
+
+  const k0 = last.p0 / first.p0, k1 = last.p1 / first.p1;
+  if (!(k0 > 0) || !(k1 > 0)) return null;
+
+  const pos = DEPOSIT * Math.sqrt(k0 * k1);
+  const hold = DEPOSIT / 2 * k0 + DEPOSIT / 2 * k1;
+  if (!(hold > 0)) return null;
+
+  return {
+    vsHold: +((((pos + fees) / hold) - 1) * 100).toFixed(2),
+    feesUSD: Math.round(fees),
+    inRangePct: 100,                       /* always, by construction */
+    share: shareN ? shareSum / shareN : 0
+  };
+}
+
 /* One position, one band, one stretch of days. Returns how it finished against
    simply holding the two tokens it started as. */
 function runBand(FEEQ, rows, d0, d1, widthPct) {
@@ -177,6 +220,60 @@ function runBand(FEEQ, rows, d0, d1, widthPct) {
     feesUSD: Math.round(fees),
     inRangePct: seen ? Math.round((walk.inN / seen) * 100) : 0,
     share: walk.share            /* fraction of the pool this position would be */
+  };
+}
+
+async function assessV2(chain, pool) {
+  const from = Math.floor(Date.now() / 1000) - YEAR * 86400;
+  const j = await getJSON(`${SITE}/api/pool-v2?chain=${chain}` +
+                          `&address=${pool.address}&from=${from}`);
+  if (!j || j.error || j.source !== 'subgraph-v2') {
+    return { rejected: 'no v2 history', quiet: true };
+  }
+  const days = (j.days || []).filter(d => d.p0 > 0 && d.p1 > 0);
+  if (days.length < MIN_DAYS) {
+    return { rejected: 'only ' + days.length + ' days of usable history', quiet: true };
+  }
+
+  const feeRate = j.pool.feeTier / 1000000;
+  const recent = days.slice(-DAYS);
+  const r = runV2(recent, feeRate);
+  if (!r) return { rejected: 'could not be priced', quiet: true };
+  if (r.share > MAX_SHARE) {
+    return { rejected: 'position would be ' + (r.share * 100).toFixed(1) + '% of this pair' };
+  }
+  if (Math.abs(r.vsHold) > MAX_PLAUSIBLE) {
+    return { rejected: 'implausible result, ' + r.vsHold + '% \u2014 not published' };
+  }
+
+  const quarters = [];
+  const qLen = Math.floor(YEAR / QUARTERS);
+  for (let q = QUARTERS - 1; q >= 0; q--) {
+    const end = Math.floor(Date.now() / 1000) - q * qLen * 86400;
+    const slice = days.filter(d => d.t >= end - qLen * 86400 && d.t <= end);
+    if (slice.length < 30) { quarters.push(null); continue; }
+    const qr = runV2(slice, feeRate);
+    quarters.push(qr ? qr.vsHold > 0 : null);
+  }
+
+  const s0 = j.pool.token0.symbol || '?', s1 = j.pool.token1.symbol || '?';
+  /* Every band carries the same figure because there are no bands. The page
+     reads `version` and shows one number instead of three. */
+  const bands = {};
+  for (const b of BANDS) bands[b] = r;
+
+  return {
+    chain, address: pool.address, dex: pool.dex, version: 'v2',
+    pair: `${s0}/${s1}`,
+    feeTier: j.pool.feeTier / 10000,
+    tvl: Math.round(pool.tvl),
+    stable: STABLES.test(s0) && STABLES.test(s1),
+    oneStable: STABLES.test(s0) !== STABLES.test(s1),
+    tokens: [s0.toUpperCase(), s1.toUpperCase()],
+    days: recent.length,
+    bands, quarters,
+    quartersWon: quarters.filter(x => x === true).length,
+    quartersRated: quarters.filter(x => x !== null).length
   };
 }
 
@@ -238,7 +335,7 @@ async function assess(chain, pool, FEEQ) {
   }
 
   return {
-    chain, address: pool.address, dex: pool.dex,
+    chain, address: pool.address, dex: pool.dex, version: 'v3',
     pair: `${s0}/${s1}`,
     feeTier: j.pool.feeTier / 10000,
     tvl: Math.round(pool.tvl),
@@ -269,7 +366,10 @@ async function main() {
     for (const p of list) {
       looked++;
       try {
-        const r = await assess(chain, p, FEEQ);
+        /* v2 and v3 are measured differently because they are different
+           products; the dex tag says which. */
+        const isV2 = /(^|[_-])v2$/.test(String(p.dex || ''));
+        const r = isV2 ? await assessV2(chain, p) : await assess(chain, p, FEEQ);
         if (r && r.rejected) {
           skipped++; note(r.rejected);
           if (!r.quiet) console.error(`  dropped ${p.name || p.address}: ${r.rejected}`);
