@@ -34,7 +34,13 @@ const OUT = path.join(ROOT, 'LPvsHODL', 'best-pools.json');
 
 const DEPOSIT = 10000;          /* every pool tested at the same size */
 const BANDS = [10, 25, 50];     /* percent either side of the entry price */
-const DAYS = 90;                /* headline window */
+/* A full year, not a quarter. The first run ranked on 90 days and reported that
+   13 of 17 pools beat holding — which says more about that particular quarter
+   being calm than about pools. Ninety days can miss a real price move entirely,
+   and impermanent loss only shows up when price actually moves. The year of
+   history was already being fetched for the quarter-by-quarter record, so this
+   costs nothing extra. */
+const DAYS = 365;               /* headline window */
 const YEAR = 365;               /* for the quarter-by-quarter record */
 const QUARTERS = 4;
 const MIN_TVL = 250000;         /* below this the numbers stop meaning anything */
@@ -54,8 +60,24 @@ const MIN_TVL = 250000;         /* below this the numbers stop meaning anything 
    percent is already generous — a realistic retail position in a healthy pool
    sits far below one percent. */
 const MAX_SHARE = 0.05;
-const MIN_DAYS = 60;            /* too little history to judge */
-const PER_CHAIN = 40;
+
+/* A second, blunter guard, because the dilution check above only catches one
+   cause. Fees alone cannot plausibly double a position against holding in 90
+   days — that would be roughly 400% a year — so anything past this is a symptom
+   of something we have not understood yet, not a finding. Such pools are
+   dropped and the reason logged rather than published: this site's whole claim
+   is that it does not print numbers it cannot stand behind, and that has to
+   apply to numbers that flatter as well as ones that disappoint. */
+const MAX_PLAUSIBLE = 100;
+const MIN_DAYS = 300;           /* needs most of the year to be judged over one */
+
+/* How deep to dig per chain. Seventeen pools across six chains was too few to
+   say anything about the market, so this goes further down the size rankings.
+   It is capped rather than open-ended because of the query budget: each pool
+   costs about four paid queries, so 60 per chain is roughly 1,400 a run and
+   43,000 a month against a 100,000 allowance — leaving room for actual visitors.
+   Raising this materially means paying for a bigger plan. */
+const PER_CHAIN = 60;
 
 /* GeckoTerminal's network slugs -> the names our own endpoint knows. Only
    chains where a real fee record exists belong here. */
@@ -95,7 +117,7 @@ async function getJSON(url, tries = 3) {
    costs nothing; the paid queries only happen for pools that survive filtering. */
 async function candidates(net) {
   const out = [];
-  for (const page of [1, 2]) {
+  for (const page of [1, 2, 3]) {
     const j = await getJSON(`https://api.geckoterminal.com/api/v2/networks/${net}/pools?page=${page}`);
     for (const d of (j && j.data) || []) {
       const a = d.attributes || {};
@@ -164,21 +186,27 @@ async function assess(chain, pool, FEEQ) {
                           `&address=${pool.address}&from=${from}`);
   /* No record, wrong kind of pool, or too thin a history: it does not go in the
      list at all. A leaderboard padded with estimates is the thing we are against. */
-  if (!j || j.error || j.source !== 'subgraph') return null;
+  if (!j || j.error || j.source !== 'subgraph') {
+    return { rejected: 'no fee record', quiet: true };
+  }
   const rows = (j.hours || []).filter(r => r.p0 > 0 && r.p1 > 0);
-  if (rows.length < MIN_DAYS) return null;
+  if (rows.length < MIN_DAYS) {
+    return { rejected: 'only ' + rows.length + ' days of usable history', quiet: true };
+  }
 
   const d0 = j.pool.token0.decimals, d1 = j.pool.token1.decimals;
   const s0 = j.pool.token0.symbol || '?', s1 = j.pool.token1.symbol || '?';
 
   const recent = rows.slice(-DAYS);
-  if (recent.length < MIN_DAYS) return null;
+  if (recent.length < MIN_DAYS) {
+    return { rejected: 'not enough recent history', quiet: true };
+  }
 
   const bands = {};
   let worstShare = 0;
   for (const b of BANDS) {
     const r = runBand(FEEQ, recent, d0, d1, b);
-    if (!r) return null;
+    if (!r) return { rejected: 'could not be priced at \u00b1' + b + '%', quiet: true };
     worstShare = Math.max(worstShare, r.share || 0);
     bands[b] = r;
   }
@@ -186,8 +214,14 @@ async function assess(chain, pool, FEEQ) {
      dropped, because a wave of these means the pool universe needs rethinking,
      not that the filter is working. */
   if (worstShare > MAX_SHARE) {
-    return { rejected: 'position would be ' + Math.round(worstShare * 100) +
+    return { rejected: 'position would be ' + (worstShare * 100).toFixed(1) +
                        '% of this pool\'s liquidity' };
+  }
+  const wild = BANDS.find(b => Math.abs(bands[b].vsHold) > MAX_PLAUSIBLE);
+  if (wild) {
+    return { rejected: 'implausible result, ' + bands[wild].vsHold + '% at \u00b1' + wild +
+                       '% (share ' + (worstShare * 100).toFixed(3) +
+                       '%, fees $' + bands[wild].feesUSD + ') — not published' };
   }
 
   /* Quarter by quarter, at the middle band. One good quarter is luck; four is
@@ -222,7 +256,10 @@ async function assess(chain, pool, FEEQ) {
 async function main() {
   const FEEQ = loadMaths();
   const pools = [];
+  const why = {};
   let looked = 0, skipped = 0;
+  const note = (reason) => { const k = String(reason).replace(/[\d.]+/g, 'N');
+                             why[k] = (why[k] || 0) + 1; };
 
   for (const [net, chain] of Object.entries(CHAINS)) {
     let list = [];
@@ -233,9 +270,18 @@ async function main() {
       looked++;
       try {
         const r = await assess(chain, p, FEEQ);
-        if (r && r.rejected) { skipped++; console.error(`  dropped ${p.address}: ${r.rejected}`); }
-        else if (r) { pools.push(r); console.error(`  kept ${r.pair} ${r.chain}`); }
-        else { skipped++; }
+        if (r && r.rejected) {
+          skipped++; note(r.rejected);
+          if (!r.quiet) console.error(`  dropped ${p.name || p.address}: ${r.rejected}`);
+        }
+        else if (r) {
+          pools.push(r);
+          const b = r.bands[25];
+          console.error(`  kept ${r.pair} ${r.chain} ${r.feeTier}% ` +
+            `| vsHold ${b.vsHold}% | fees $${b.feesUSD} ` +
+            `| share ${(b.share * 100).toFixed(3)}% | in range ${b.inRangePct}%`);
+        }
+        else { skipped++; note('unknown'); }
       } catch (e) { skipped++; console.error(`  failed ${p.address}: ${e.message}`); }
       await sleep(400);
     }
@@ -251,7 +297,7 @@ async function main() {
     generated: new Date().toISOString(),
     window: { days: DAYS, deposit: DEPOSIT, bands: BANDS, sortBand: 25 },
     summary: { tested: pools.length, beatHolding: won, lostToHolding: pools.length - won,
-               examined: looked, skipped },
+               examined: looked, skipped, skipReasons: why },
     pools
   };
 
@@ -259,9 +305,11 @@ async function main() {
     console.error('no pools survived — refusing to overwrite a good file with an empty one');
     process.exit(1);
   }
-  payload.pools.forEach(p => { for (const b of BANDS) delete p.bands[b].share; });
   fs.writeFileSync(OUT, JSON.stringify(payload, null, 1));
-  console.error(`wrote ${OUT}: ${pools.length} pools, ${won} beat holding`);
+  console.error(`\nwrote ${OUT}: ${pools.length} pools, ${won} beat holding, ${pools.length - won} lost`);
+  console.error('why the rest were dropped:');
+  Object.entries(why).sort((a, b) => b[1] - a[1])
+    .forEach(([k, v]) => console.error(`  ${String(v).padStart(4)}  ${k}`));
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
