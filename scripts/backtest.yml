@@ -1,0 +1,19 @@
+# Runs the trend-following backtest on demand and prints the result in the log.
+# Nothing is committed and no money moves — this only reports what a rule would
+# have done against real daily prices, costs included.
+name: Backtest strategy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run the backtest
+        run: node scripts/backtest-strategy.mjs
