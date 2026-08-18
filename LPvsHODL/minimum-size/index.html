@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){try{
+  var saved=localStorage.getItem('lvh-theme');
+  var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme',saved||(dark?'dark':'light'));
+}catch(e){}})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How much do you need to make a liquidity pool worth it? — LPvsHODL</title>
+<meta name="description" content="Work out the smallest deposit worth putting into a liquidity pool, using each pool's real measured fees against what you pay in gas to enter, exit and re-centre.">
+<link rel="canonical" href="https://lpvshodl.com/minimum-size/">
+<meta property="og:title" content="How much do you need to make a pool worth it?">
+<meta property="og:description" content="Below a certain deposit, gas eats the fees. This works out where that line sits, per pool, from measured fees rather than advertised rates.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F3F5; --card:#FFFFFF; --ink:#10141C; --soft:#5F6B7A; --rule:#E1E5EA; --field:#FFFFFF;
+  --accent:#3B2BD0; --good:#12764C; --bad:#B3372A;
+}
+[data-theme="dark"]{
+  --bg:#0B0D13; --card:#151A23; --ink:#ECEFF4; --soft:#8E99A8; --rule:#252C39; --field:#10151E;
+  --accent:#7D6DFF; --good:#33B682; --bad:#E8705F;
+}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:22px 20px 44px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:17px;
+  letter-spacing:-.02em;text-decoration:none;color:var(--ink)}
+.brand b{color:var(--accent)}
+.themebtn{background:var(--card);border:1px solid var(--rule);border-radius:99px;padding:7px 13px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--soft);cursor:pointer}
+nav.tabs{display:flex;gap:18px;border-bottom:1px solid var(--rule);margin-bottom:26px;
+  overflow-x:auto;white-space:nowrap}
+nav.tabs a{padding:10px 2px 12px;text-decoration:none;color:var(--soft);font-size:14px}
+nav.tabs a.on{color:var(--accent);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent)}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;letter-spacing:-.03em;
+  font-size:clamp(28px,5vw,46px);line-height:1.05;margin:0 0 12px}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{color:var(--soft);max-width:64ch;margin:0 0 22px}
+.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;
+  background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:16px 18px;margin-bottom:8px}
+label{display:block;font-size:13px;color:var(--soft);margin-bottom:5px}
+input,select{width:100%;background:var(--field);color:var(--ink);border:1px solid var(--rule);
+  border-radius:9px;padding:9px 11px;font-size:15px;font-family:inherit}
+.hint{font-size:12.5px;color:var(--soft);margin:8px 0 22px;line-height:1.6}
+.headline{background:var(--card);border:1px solid var(--rule);border-radius:14px;
+  padding:18px 20px;margin-bottom:20px}
+.big{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+  font-size:clamp(22px,3.8vw,32px);line-height:1.12}
+.sub{color:var(--soft);font-size:14px;margin-top:6px}
+table{width:100%;border-collapse:collapse;font-family:"IBM Plex Mono",monospace;font-size:13px}
+th,td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{color:var(--soft);font-weight:500;font-size:12px}
+.up{color:var(--good)}.down{color:var(--bad)}
+.scroll{overflow-x:auto}
+.note{color:var(--soft);font-size:13px;margin-top:24px;line-height:1.65}
+a.plain{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <a class="brand" href="/">LP<b>vs</b>HODL</a>
+  <button class="themebtn" id="theme" type="button" aria-label="Toggle dark mode">
+    <span id="themeIcon">&#9689;</span> <span id="themeText">Dark</span>
+  </button>
+</div>
+
+<nav class="tabs">
+  <a href="/">Backtest a pool</a>
+  <a href="/best-pools/">Best pools</a>
+  <a href="/minimum-size/" class="on">Minimum size</a>
+</nav>
+
+<h1>How much do you need for a pool to be <em>worth it</em>?</h1>
+<p class="lede">Every position costs gas twice &mdash; once to open, once to close &mdash; and twice
+more each time you move your range. Below a certain deposit those costs eat the fees entirely.
+This works out where that line sits, using what each pool actually paid over the last year rather
+than an advertised rate.</p>
+
+<div class="inputs">
+  <div>
+    <label for="dep">Your deposit (USD)</label>
+    <input id="dep" type="number" min="1" step="100" value="1000">
+  </div>
+  <div>
+    <label for="gas">Gas per transaction (USD)</label>
+    <input id="gas" type="number" min="0" step="0.5" value="5">
+  </div>
+  <div>
+    <label for="re">Re-centres per year</label>
+    <input id="re" type="number" min="0" max="52" step="1" value="4">
+  </div>
+  <div>
+    <label for="chain">Chain</label>
+    <select id="chain"><option value="">All chains</option></select>
+  </div>
+</div>
+<p class="hint">Gas is left for you to fill in because it moves constantly and differs by chain &mdash;
+a round trip costs pennies on Base and can cost tens of dollars on Ethereum mainnet. Check what a
+swap costs right now and put that number in. Opening and closing is 2 transactions; each re-centre
+is 2 more.</p>
+
+<div class="headline">
+  <div class="big" id="hBig">Loading&hellip;</div>
+  <div class="sub" id="hSub"></div>
+</div>
+
+<div class="scroll">
+<table>
+  <thead><tr>
+    <th>Pool</th><th>Fees on your deposit</th><th>Gas cost</th>
+    <th>Gas as share of fees</th><th>Break-even deposit</th><th>Worth it above</th>
+  </tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+</div>
+
+<p class="note" id="foot"></p>
+
+</div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i);};
+var LSK='lvh-theme';
+function applyTheme(t,remember){
+  document.documentElement.setAttribute('data-theme',t);
+  $('themeText').textContent=(t==='dark')?'Light':'Dark';
+  $('themeIcon').textContent=(t==='dark')?'\u2600':'\u25D7';
+  if(remember){try{localStorage.setItem(LSK,t);}catch(e){}}
+}
+var saved=null;try{saved=localStorage.getItem(LSK);}catch(e){}
+var dev='light';
+try{dev=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}catch(e){}
+applyTheme(saved||dev,false);
+$('theme').addEventListener('click',function(){
+  applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark',true);
+});
+
+var DATA=null;
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){
+  return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function money(v){
+  if(!isFinite(v))return '\u2014';
+  if(v>=1000)return '$'+Math.round(v).toLocaleString();
+  return '$'+v.toFixed(v<10?2:0);
+}
+function n(id){var v=parseFloat($(id).value);return isFinite(v)?v:0;}
+
+/* Fees scale straight with the deposit: twice the money in the same range earns
+   twice the fees. Gas does not scale at all — it is the same whether you deposit
+   fifty dollars or fifty thousand. That gap is the entire reason small positions
+   fail, and it is why the break-even is a hard number rather than a feeling. */
+function work(p,dep,gasEach,recentres){
+  var feesOn10k=p.bands['25'].feesUSD;          /* measured, over the last year */
+  var yield_=feesOn10k/10000;                   /* fees per dollar deposited */
+  var txs=2+2*recentres;                        /* in, out, and two per re-centre */
+  var gas=gasEach*txs;
+  var fees=dep*yield_;
+  return {
+    pair:p.pair, chain:p.chain, feeTier:p.feeTier, version:p.version,
+    address:p.address, fees:fees, gas:gas,
+    share:fees>0?(gas/fees*100):Infinity,
+    /* the deposit at which fees exactly cover gas */
+    breakeven:yield_>0?gas/yield_:Infinity,
+    /* and the deposit at which gas is down to a tenth of the fees, which is the
+       point most people would actually call worth the trouble */
+    worthIt:yield_>0?(gas*10)/yield_:Infinity
+  };
+}
+
+function render(){
+  if(!DATA)return;
+  var dep=n('dep'), gasEach=n('gas'), re=n('re'), chain=$('chain').value;
+  var pools=DATA.pools.filter(function(p){return !chain||p.chain===chain;});
+  if(!pools.length){$('rows').innerHTML='';$('hBig').textContent='No pools for that chain.';
+    $('hSub').textContent='';return;}
+
+  var rows=pools.map(function(p){return work(p,dep,gasEach,re);})
+                .sort(function(a,b){return a.breakeven-b.breakeven;});
+
+  var usable=rows.filter(function(r){return isFinite(r.breakeven)&&dep>=r.breakeven;}).length;
+  var cheapest=rows[0];
+  $('hBig').textContent=usable+' of '+rows.length+' pools would cover their gas at '+money(dep);
+  $('hSub').textContent=isFinite(cheapest.breakeven)
+    ? 'The lowest bar is '+esc(cheapest.pair)+' on '+esc(cheapest.chain)+
+      ', which needs '+money(cheapest.breakeven)+' just to break even on costs, and '+
+      money(cheapest.worthIt)+' before gas drops below a tenth of the fees.'
+    : '';
+
+  $('rows').innerHTML=rows.map(function(r){
+    var covers=dep>=r.breakeven;
+    return '<tr>'+
+      '<td>'+esc(r.pair)+'<br><span style="color:var(--soft);font-size:11.5px">'+
+        esc(r.chain)+' \u00b7 '+r.feeTier+'%'+(r.version==='v2'?' \u00b7 v2':'')+'</span></td>'+
+      '<td>'+money(r.fees)+'</td>'+
+      '<td>'+money(r.gas)+'</td>'+
+      '<td class="'+(covers?'up':'down')+'">'+
+        (isFinite(r.share)?(r.share>999?'&gt;999':r.share.toFixed(0))+'%':'\u2014')+'</td>'+
+      '<td>'+money(r.breakeven)+'</td>'+
+      '<td>'+money(r.worthIt)+'</td>'+
+    '</tr>';
+  }).join('');
+}
+
+['dep','gas','re','chain'].forEach(function(id){
+  $(id).addEventListener('input',render);$(id).addEventListener('change',render);});
+
+fetch('/best-pools.json?v='+Date.now()).then(function(r){
+  if(!r.ok)throw new Error('http');return r.json();
+}).then(function(j){
+  DATA=j;
+  var chains=[];j.pools.forEach(function(p){if(chains.indexOf(p.chain)<0)chains.push(p.chain);});
+  chains.sort().forEach(function(c){
+    var o=document.createElement('option');o.value=c;o.textContent=c;$('chain').appendChild(o);});
+  $('foot').innerHTML='Fees are what each pool actually paid over the last '+j.window.days+
+    ' days at a &plusmn;25% range, scaled to your deposit. Past results for one fixed strategy, '+
+    'not a forecast \u2014 a pool that paid well last year can pay nothing this year. '+
+    'Impermanent loss is not included here; this page is only about whether fees can cover costs. '+
+    '<a class="plain" href="/">Run the full comparison on any pool</a> or '+
+    '<a class="plain" href="/best-pools/">see which pools beat holding</a>.';
+  render();
+}).catch(function(){
+  $('hBig').textContent='The pool data isn\u2019t available';
+  $('hSub').textContent='The overnight run hasn\u2019t produced a file yet, or it failed to load.';
+});
+})();
+</script>
+</body>
+</html>
