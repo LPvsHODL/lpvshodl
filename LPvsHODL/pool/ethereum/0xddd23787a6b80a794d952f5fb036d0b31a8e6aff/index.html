@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){try{
+  var saved=localStorage.getItem('lvh-theme');
+  var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme',saved||(dark?'dark':'light'));
+}catch(e){}})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Is the pepecoin/WETH 0.3% pool on ethereum worth it? &mdash; LPvsHODL</title>
+<meta name="description" content="Over the last 365 days it beat simply holding the two tokens by 1.0%. Measured from the pool's own fee record, not an advertised rate.">
+<link rel="canonical" href="https://lpvshodl.com/pool/ethereum/0xddd23787a6b80a794d952f5fb036d0b31a8e6aff/">
+<meta property="og:title" content="Is the pepecoin/WETH 0.3% pool on ethereum worth it?">
+<meta property="og:description" content="Over the last 365 days it beat simply holding the two tokens by 1.0%. Measured from the pool's own fee record, not an advertised rate.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F1F3F5;--card:#FFFFFF;--ink:#10141C;--soft:#5F6B7A;--rule:#E1E5EA;
+  --accent:#3B2BD0;--good:#12764C;--bad:#B3372A}
+[data-theme="dark"]{--bg:#0B0D13;--card:#151A23;--ink:#ECEFF4;--soft:#8E99A8;--rule:#252C39;
+  --accent:#7D6DFF;--good:#33B682;--bad:#E8705F}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:15px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding:22px 20px 48px}
+a{color:var(--accent)}
+.brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:17px;
+  text-decoration:none;color:var(--ink);letter-spacing:-.02em}
+.brand b{color:var(--accent)}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;letter-spacing:-.03em;
+  font-size:clamp(26px,4.6vw,40px);line-height:1.08;margin:22px 0 12px}
+.verdict{background:var(--card);border:1px solid var(--rule);border-radius:14px;
+  padding:18px 20px;margin:18px 0}
+.big{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+  font-size:clamp(24px,4vw,34px);line-height:1.1;color:var(--good)}
+.sub{color:var(--soft);font-size:14px;margin-top:6px}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-family:"IBM Plex Mono",monospace;
+  font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule)}
+th{color:var(--soft);font-weight:500}
+.up{color:var(--good)}.down{color:var(--bad)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:9px 14px;border:1px solid var(--rule);
+  border-radius:9px;text-decoration:none;font-size:14px}
+.cta.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.foot{color:var(--soft);font-size:13px;margin-top:26px}
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is the pepecoin/WETH 0.3% pool on ethereum worth it?","acceptedAnswer":{"@type":"Answer","text":"Over the last 365 days it beat simply holding the two tokens by 1.0%. Measured from the pool's own fee record, not an advertised rate."}}]}</script>
+</head>
+<body><div class="wrap">
+<a class="brand" href="/">LP<b>vs</b>HODL</a>
+<h1>Is the pepecoin/WETH 0.3% pool on ethereum worth it?</h1>
+
+<div class="verdict">
+  <div class="big">Beat holding by 1.0%</div>
+  <div class="sub">$10,000 over 365 days, at &plusmn;25%.
+    Fees from the pool's own record.</div>
+</div>
+
+<table>
+<tr><th>Range</th><th>vs holding</th><th>Fees earned</th><th>In range</th></tr>
+<tr><td>Full range</td><td class="up">+1.0%</td>
+         <td>$279</td><td>100%</td></tr>
+</table>
+
+<p>It beat holding in 3 of 4 quarters over the year.
+Fee tier 0.3%, on ethereum.</p>
+
+<p>This is a v2 pair, so there is no range to set &mdash; your money covers every
+       price and earns a fixed share of every trade. That makes the fee side exact rather
+       than estimated. What it does not remove is impermanent loss: as the two prices move
+       apart, the pool sells whichever token is rising, and you end up with less of the
+       winner than if you had simply held both.</p>
+
+<p><a class="cta primary" href="/?a=0xddd23787a6b80a794d952f5fb036d0b31a8e6aff&c=ethereum&lo=25&up=25&q=10000">Run this pool with your own numbers</a>
+<a class="cta" href="/best-pools/">See how every pool compared</a></p>
+
+<p class="foot">These are past results for one fixed strategy, not a recommendation &mdash;
+a pool that beat holding last year can lose the next. Worked out 2026-08-18.
+<a href="/">Back to the backtester</a>.</p>
+</div></body></html>
