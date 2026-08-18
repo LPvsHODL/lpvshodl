@@ -31,6 +31,11 @@ const SITE = process.env.SITE_ORIGIN || 'https://lpvshodl.com';
 const ROOT = process.cwd();
 const PAGE = path.join(ROOT, 'LPvsHODL', 'index.html');
 const OUT = path.join(ROOT, 'LPvsHODL', 'best-pools.json');
+const SITE_DIR = path.join(ROOT, 'LPvsHODL');
+
+/* Pages that exist regardless of what the run finds. Listed here because the
+   sitemap is rewritten wholesale each night and would otherwise drop them. */
+const CORE_PAGES = ['/', '/best-pools/', '/impermanent-loss/'];
 
 const DEPOSIT = 10000;          /* every pool tested at the same size */
 const BANDS = [10, 25, 50];     /* percent either side of the entry price */
@@ -386,6 +391,170 @@ async function assess(chain, pool, FEEQ) {
   };
 }
 
+function esc(x) {
+  return String(x).replace(/[&<>"]/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+/* One page per pool.
+
+   This is the part that makes the site findable. Nobody searches "liquidity
+   pool calculator" — they search "is the ETH USDC pool worth it", which is a
+   question with a specific pool in it, and a question this site can answer with
+   a measured number rather than an opinion. A page per pool is the only shape
+   that matches how people actually ask.
+
+   Written as flat files rather than served dynamically: they change once a
+   night, so making a visitor wait on a lookup would be work for nothing, and a
+   static file cannot fail at the moment a crawler arrives. */
+function poolPage(p, generated, windowInfo) {
+  const v = p.bands['25'].vsHold;
+  const won = v > 0;
+  const title = `Is the ${p.pair} ${p.feeTier}% pool on ${p.chain} worth it?`;
+  const verdict = won
+    ? `Over the last ${windowInfo.days} days it beat simply holding the two tokens by ${v.toFixed(1)}%.`
+    : `Over the last ${windowInfo.days} days it lost to simply holding the two tokens by ${Math.abs(v).toFixed(1)}%.`;
+  const desc = `${verdict} Measured from the pool's own fee record, not an advertised rate.`;
+  const url = `https://lpvshodl.com/pool/${p.chain}/${p.address}/`;
+  const backtest = `/?a=${p.address}&c=${p.chain}&lo=25&up=25&q=${windowInfo.deposit}`;
+
+  const bandRows = (p.version === 'v2')
+    ? `<tr><td>Full range</td><td class="${won ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v.toFixed(1)}%</td>
+         <td>$${p.bands['25'].feesUSD.toLocaleString()}</td><td>100%</td></tr>`
+    : [10, 25, 50].map(b => {
+        const x = p.bands[String(b)];
+        return `<tr><td>&plusmn;${b}%</td><td class="${x.vsHold > 0 ? 'up' : 'down'}">${x.vsHold > 0 ? '+' : ''}${x.vsHold.toFixed(1)}%</td>
+          <td>$${x.feesUSD.toLocaleString()}</td><td>${x.inRangePct}%</td></tr>`;
+      }).join('');
+
+  const why = (p.version === 'v2')
+    ? `<p>This is a v2 pair, so there is no range to set &mdash; your money covers every
+       price and earns a fixed share of every trade. That makes the fee side exact rather
+       than estimated. What it does not remove is impermanent loss: as the two prices move
+       apart, the pool sells whichever token is rising, and you end up with less of the
+       winner than if you had simply held both.</p>`
+    : `<p>This is a concentrated pool, so you pick a price range and only earn while the
+       price is inside it. At &plusmn;25% this position was in range
+       ${p.bands['25'].inRangePct}% of the year. The rest of the time it earned nothing
+       while still carrying the full effect of the price moving &mdash; which is usually
+       the difference between a pool that beats holding and one that does not.</p>`;
+
+  const faq = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [{
+      '@type': 'Question',
+      name: title,
+      acceptedAnswer: { '@type': 'Answer', text: desc }
+    }]
+  };
+
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<script>
+(function(){try{
+  var saved=localStorage.getItem('lvh-theme');
+  var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme',saved||(dark?'dark':'light'));
+}catch(e){}})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)} &mdash; LPvsHODL</title>
+<meta name="description" content="${esc(desc)}">
+<link rel="canonical" href="${url}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F1F3F5;--card:#FFFFFF;--ink:#10141C;--soft:#5F6B7A;--rule:#E1E5EA;
+  --accent:#3B2BD0;--good:#12764C;--bad:#B3372A}
+[data-theme="dark"]{--bg:#0B0D13;--card:#151A23;--ink:#ECEFF4;--soft:#8E99A8;--rule:#252C39;
+  --accent:#7D6DFF;--good:#33B682;--bad:#E8705F}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:15px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding:22px 20px 48px}
+a{color:var(--accent)}
+.brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:17px;
+  text-decoration:none;color:var(--ink);letter-spacing:-.02em}
+.brand b{color:var(--accent)}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;letter-spacing:-.03em;
+  font-size:clamp(26px,4.6vw,40px);line-height:1.08;margin:22px 0 12px}
+.verdict{background:var(--card);border:1px solid var(--rule);border-radius:14px;
+  padding:18px 20px;margin:18px 0}
+.big{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+  font-size:clamp(24px,4vw,34px);line-height:1.1;color:var(--${won ? 'good' : 'bad'})}
+.sub{color:var(--soft);font-size:14px;margin-top:6px}
+table{width:100%;border-collapse:collapse;margin:18px 0;font-family:"IBM Plex Mono",monospace;
+  font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule)}
+th{color:var(--soft);font-weight:500}
+.up{color:var(--good)}.down{color:var(--bad)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:9px 14px;border:1px solid var(--rule);
+  border-radius:9px;text-decoration:none;font-size:14px}
+.cta.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.foot{color:var(--soft);font-size:13px;margin-top:26px}
+</style>
+<script type="application/ld+json">${JSON.stringify(faq)}</script>
+</head>
+<body><div class="wrap">
+<a class="brand" href="/">LP<b>vs</b>HODL</a>
+<h1>${esc(title)}</h1>
+
+<div class="verdict">
+  <div class="big">${won ? 'Beat holding' : 'Lost to holding'} by ${Math.abs(v).toFixed(1)}%</div>
+  <div class="sub">$${windowInfo.deposit.toLocaleString()} over ${windowInfo.days} days, at &plusmn;25%.
+    Fees from the pool's own record.</div>
+</div>
+
+<table>
+<tr><th>Range</th><th>vs holding</th><th>Fees earned</th><th>In range</th></tr>
+${bandRows}
+</table>
+
+<p>It beat holding in ${p.quartersWon} of ${p.quartersRated} quarters over the year.
+Fee tier ${p.feeTier}%, on ${esc(p.chain)}.</p>
+
+${why}
+
+<p><a class="cta primary" href="${backtest}">Run this pool with your own numbers</a>
+<a class="cta" href="/best-pools/">See how every pool compared</a></p>
+
+<p class="foot">These are past results for one fixed strategy, not a recommendation &mdash;
+a pool that beat holding last year can lose the next. Worked out ${esc(generated.slice(0, 10))}.
+<a href="/">Back to the backtester</a>.</p>
+</div></body></html>
+`;
+}
+
+function writePages(payload) {
+  const w = payload.window;
+  let written = 0;
+  for (const p of payload.pools) {
+    const dir = path.join(SITE_DIR, 'pool', p.chain, p.address);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'index.html'), poolPage(p, payload.generated, w));
+    written++;
+  }
+
+  /* Rewritten whole each night, so the core pages are listed explicitly above
+     rather than read back out of the old file. */
+  const urls = CORE_PAGES.map(u => `https://lpvshodl.com${u}`)
+    .concat(payload.pools.map(p => `https://lpvshodl.com/pool/${p.chain}/${p.address}/`));
+  const today = payload.generated.slice(0, 10);
+  fs.writeFileSync(path.join(SITE_DIR, 'sitemap.xml'),
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls.map(u => `  <url><loc>${u}</loc><lastmod>${today}</lastmod></url>`).join('\n') +
+    '\n</urlset>\n');
+
+  return written;
+}
+
 async function main() {
   const FEEQ = loadMaths();
   const pools = [];
@@ -450,6 +619,9 @@ async function main() {
     process.exit(1);
   }
   fs.writeFileSync(OUT, JSON.stringify(payload, null, 1));
+  const pages = writePages(payload);
+  console.error(`wrote ${pages} pool pages and a sitemap covering ` +
+                `${pages + CORE_PAGES.length} URLs`);
   console.error(`\nwrote ${OUT}: ${pools.length} pools, ${won} beat holding, ${pools.length - won} lost`);
   console.error('why the rest were dropped:');
   Object.entries(why).sort((a, b) => b[1] - a[1])
