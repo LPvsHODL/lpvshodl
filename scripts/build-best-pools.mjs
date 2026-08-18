@@ -35,7 +35,7 @@ const SITE_DIR = path.join(ROOT, 'LPvsHODL');
 
 /* Pages that exist regardless of what the run finds. Listed here because the
    sitemap is rewritten wholesale each night and would otherwise drop them. */
-const CORE_PAGES = ['/', '/best-pools/', '/impermanent-loss/'];
+const CORE_PAGES = ['/', '/best-pools/', '/minimum-size/', '/impermanent-loss/'];
 
 const DEPOSIT = 10000;          /* every pool tested at the same size */
 const BANDS = [10, 25, 50];     /* percent either side of the entry price */
