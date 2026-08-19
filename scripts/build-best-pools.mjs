@@ -111,6 +111,26 @@ const NATIVE = {
    difference between one transaction type and another is not. */
 const GAS_UNITS = 250000;
 
+/* How many recent blocks to sample, and which percentile to take.
+   A single eth_gasPrice reading is the price at one instant, and this job runs
+   at 4am when nothing is happening — on the first live run that produced 0.05
+   gwei for Ethereum mainnet, which is a real reading and a useless planning
+   figure. Somebody deciding whether a position is worth opening will not
+   transact at the quietest minute of the week, so a busy-ish percentile over a
+   window of blocks is the more honest input. */
+const FEE_BLOCKS = 100;
+const FEE_PCTL = 75;
+
+/* Every chain here pays gas in ETH, so one price serves all of them. Without
+   this, a chain whose pools all got filtered out has no price and no gas figure
+   at all — which is exactly what happened to Arbitrum and Optimism. */
+const ETH_GAS_CHAINS = ['ethereum', 'base', 'arbitrum', 'optimism'];
+
+/* On an L2 the execution fee read here is only part of the bill: posting the
+   data back to Ethereum costs more than running the transaction does. Treated
+   as a floor and labelled as such rather than quietly understated. */
+const L2S = new Set(['base', 'arbitrum', 'optimism']);
+
 /* Filled in as pools are read, then used to convert gas prices into dollars. */
 const NATIVE_PX = {};
 
@@ -601,27 +621,54 @@ function writePages(payload) {
 
 /* Current gas price per chain, in dollars per transaction. Anything that fails
    is left out rather than guessed at. */
+async function rpc(url, method, params) {
+  const r = await fetch(url, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params || [] })
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  if (j && j.error) throw new Error(j.error.message || 'rpc error');
+  return j && j.result;
+}
+
+/* A busy-ish price over a window of blocks, falling back to the instantaneous
+   one if the chain will not answer for history. */
+async function typicalGasWei(url) {
+  try {
+    const h = await rpc(url, 'eth_feeHistory',
+      ['0x' + FEE_BLOCKS.toString(16), 'latest', [FEE_PCTL]]);
+    const base = (h && h.baseFeePerGas || []).map(x => parseInt(x, 16)).filter(isFinite);
+    const tips = (h && h.reward || []).map(r => parseInt(r && r[0], 16)).filter(isFinite);
+    if (base.length) {
+      const sorted = base.slice().sort((a, b) => a - b);
+      const b = sorted[Math.floor(sorted.length * FEE_PCTL / 100)] || sorted[sorted.length - 1];
+      const tipSorted = tips.slice().sort((a, b2) => a - b2);
+      const tip = tipSorted.length ? (tipSorted[Math.floor(tipSorted.length / 2)] || 0) : 0;
+      return { wei: b + tip, how: FEE_PCTL + 'th pct of ' + base.length + ' blocks' };
+    }
+  } catch (e) { /* fall through */ }
+  const w = parseInt(await rpc(url, 'eth_gasPrice'), 16);
+  return { wei: w, how: 'instant' };
+}
+
 async function gasPrices(nativeUSD) {
   const out = {};
   for (const [chain, url] of Object.entries(RPCS)) {
     const px = nativeUSD[chain];
     if (!(px > 0)) { console.error(`  gas ${chain}: no native token price, skipped`); continue; }
     try {
-      const r = await fetch(url, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_gasPrice', params: [] })
-      });
-      if (!r.ok) { console.error(`  gas ${chain}: HTTP ${r.status}`); continue; }
-      const j = await r.json();
-      const wei = parseInt(j && j.result, 16);
+      const got = await typicalGasWei(url);
+      const wei = got.wei;
       if (!isFinite(wei) || wei <= 0) { console.error(`  gas ${chain}: bad reply`); continue; }
       const usd = (wei * GAS_UNITS / 1e18) * px;
       out[chain] = +usd.toFixed(usd < 1 ? 4 : 2);
       /* Everything that went into the figure, because a wrong gas price and a
          wrong token price produce the same wrong dollar amount and there is no
          telling them apart afterwards. */
-      console.error(`  gas ${chain}: ${(wei / 1e9).toFixed(4)} gwei ` +
-                    `x ${GAS_UNITS} units x $${px.toFixed(2)}/native -> $${out[chain]}`);
+      console.error(`  gas ${chain}: ${(wei / 1e9).toFixed(4)} gwei (${got.how}) ` +
+                    `x ${GAS_UNITS} units x $${px.toFixed(2)}/native -> $${out[chain]}` +
+                    (L2S.has(chain) ? '  [execution only, excludes L1 data fee]' : ''));
       /* Ethereum mainnet has not been this cheap in its history. If this fires,
          either the RPC answered with something odd or the native price is wrong. */
       if (chain === 'ethereum' && usd < 0.20) {
@@ -687,6 +734,16 @@ async function main() {
     (b.bands[25].vsHold - a.bands[25].vsHold) || (b.quartersWon - a.quartersWon));
 
   console.error('\nreading current gas prices:');
+  /* ETH is ETH wherever it is spent, so one price covers every chain that pays
+     gas in it. Otherwise a chain whose pools were all filtered out silently
+     loses its gas figure. */
+  const ethPx = ETH_GAS_CHAINS.map(c => NATIVE_PX[c]).find(p => p > 0);
+  if (ethPx > 0) {
+    for (const c of ETH_GAS_CHAINS) if (!(NATIVE_PX[c] > 0)) {
+      NATIVE_PX[c] = ethPx;
+      console.error(`  native price ${c}: $${ethPx.toFixed(2)} (ETH, shared)`);
+    }
+  }
   const gas = await gasPrices(NATIVE_PX);
 
   const won = pools.filter(p => p.bands[25].vsHold > 0).length;
