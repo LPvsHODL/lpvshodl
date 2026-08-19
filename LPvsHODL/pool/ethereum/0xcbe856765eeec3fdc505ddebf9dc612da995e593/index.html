@@ -10,11 +10,11 @@
 }catch(e){}})();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Is the WBTC/WETH 0.05% pool on polygon worth it? &mdash; LPvsHODL</title>
-<meta name="description" content="Over the last 365 days it beat simply holding the two tokens by 1.0%. Measured from the pool's own fee record, not an advertised rate.">
-<link rel="canonical" href="https://lpvshodl.com/pool/polygon/0x50eaedb835021e4a108b7290636d62e9765cc6d7/">
-<meta property="og:title" content="Is the WBTC/WETH 0.05% pool on polygon worth it?">
-<meta property="og:description" content="Over the last 365 days it beat simply holding the two tokens by 1.0%. Measured from the pool's own fee record, not an advertised rate.">
+<title>Is the LADYS/WETH 0.3% pool on ethereum worth it? &mdash; LPvsHODL</title>
+<meta name="description" content="Over the last 365 days it beat simply holding the two tokens by 3.3%. Measured from the pool's own fee record, not an advertised rate.">
+<link rel="canonical" href="https://lpvshodl.com/pool/ethereum/0xcbe856765eeec3fdc505ddebf9dc612da995e593/">
+<meta property="og:title" content="Is the LADYS/WETH 0.3% pool on ethereum worth it?">
+<meta property="og:description" content="Over the last 365 days it beat simply holding the two tokens by 3.3%. Measured from the pool's own fee record, not an advertised rate.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -48,36 +48,34 @@ th{color:var(--soft);font-weight:500}
 .cta.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 .foot{color:var(--soft);font-size:13px;margin-top:26px}
 </style>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is the WBTC/WETH 0.05% pool on polygon worth it?","acceptedAnswer":{"@type":"Answer","text":"Over the last 365 days it beat simply holding the two tokens by 1.0%. Measured from the pool's own fee record, not an advertised rate."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is the LADYS/WETH 0.3% pool on ethereum worth it?","acceptedAnswer":{"@type":"Answer","text":"Over the last 365 days it beat simply holding the two tokens by 3.3%. Measured from the pool's own fee record, not an advertised rate."}}]}</script>
 </head>
 <body><div class="wrap">
 <a class="brand" href="/">LP<b>vs</b>HODL</a>
-<h1>Is the WBTC/WETH 0.05% pool on polygon worth it?</h1>
+<h1>Is the LADYS/WETH 0.3% pool on ethereum worth it?</h1>
 
 <div class="verdict">
-  <div class="big">Beat holding by 1.0%</div>
+  <div class="big">Beat holding by 3.3%</div>
   <div class="sub">$10,000 over 365 days, at &plusmn;25%.
     Fees from the pool's own record.</div>
 </div>
 
 <table>
 <tr><th>Range</th><th>vs holding</th><th>Fees earned</th><th>In range</th></tr>
-<tr><td>&plusmn;10%</td><td class="down">-1.5%</td>
-          <td>$395</td><td>24%</td></tr><tr><td>&plusmn;25%</td><td class="up">+1.0%</td>
-          <td>$351</td><td>54%</td></tr><tr><td>&plusmn;50%</td><td class="up">+2.6%</td>
-          <td>$278</td><td>100%</td></tr>
+<tr><td>Full range</td><td class="up">+3.3%</td>
+         <td>$348</td><td>100%</td></tr>
 </table>
 
-<p>It beat holding in 4 of 4 quarters over the year.
-Fee tier 0.05%, on polygon.</p>
+<p>It beat holding in 2 of 4 quarters over the year.
+Fee tier 0.3%, on ethereum.</p>
 
-<p>This is a concentrated pool, so you pick a price range and only earn while the
-       price is inside it. At &plusmn;25% this position was in range
-       54% of the year. The rest of the time it earned nothing
-       while still carrying the full effect of the price moving &mdash; which is usually
-       the difference between a pool that beats holding and one that does not.</p>
+<p>This is a v2 pair, so there is no range to set &mdash; your money covers every
+       price and earns a fixed share of every trade. That makes the fee side exact rather
+       than estimated. What it does not remove is impermanent loss: as the two prices move
+       apart, the pool sells whichever token is rising, and you end up with less of the
+       winner than if you had simply held both.</p>
 
-<p><a class="cta primary" href="/?a=0x50eaedb835021e4a108b7290636d62e9765cc6d7&c=polygon&lo=25&up=25&q=10000">Run this pool with your own numbers</a>
+<p><a class="cta primary" href="/?a=0xcbe856765eeec3fdc505ddebf9dc612da995e593&c=ethereum&lo=25&up=25&q=10000">Run this pool with your own numbers</a>
 <a class="cta" href="/best-pools/">See how every pool compared</a></p>
 
 <p class="foot">These are past results for one fixed strategy, not a recommendation &mdash;
