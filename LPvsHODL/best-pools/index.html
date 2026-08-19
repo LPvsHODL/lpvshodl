@@ -81,9 +81,10 @@ select,input[type=search]{background:var(--field);color:var(--ink);border:1px so
 .q.win{background:var(--good)} .q.loss{background:var(--bad)}
 .note{color:var(--soft);font-size:13px;margin-top:22px;line-height:1.65}
 a.plain{color:var(--accent);text-decoration:none}
-a.lp{display:inline-block;margin-top:8px;font-size:13px;color:var(--accent);
+a.lp{display:inline-block;margin-top:8px;margin-right:8px;font-size:13px;color:var(--accent);
   text-decoration:none;border:1px solid var(--rule);border-radius:8px;padding:5px 11px}
 a.lp:hover{border-color:var(--accent)}
+a.lp.own{border-color:var(--accent)}
 .empty{padding:34px 0;color:var(--soft)}
 </style>
 </head>
@@ -234,6 +235,8 @@ function render(){
           ' &middot; beat holding in '+p.quartersWon+' of '+p.quartersRated+' quarters</div>'+
         '<div class="bands">'+bands+'</div>'+
         '<div class="qs">'+qs+'</div>'+
+        '<a class="lp own" href="/pool/'+esc(p.chain)+'/'+esc(p.address)+'/">'+
+          'Full analysis \u2192</a>'+
         (function(){var l=lpLink(p);return l
           ? '<a class="lp" href="'+esc(l.url)+'" target="_blank" rel="noopener nofollow">'+
             esc(l.label)+'</a>'
