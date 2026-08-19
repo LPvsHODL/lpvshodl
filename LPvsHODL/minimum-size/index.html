@@ -231,7 +231,9 @@ function render(){
   }).join('');
 }
 
-['dep','gas','re','chain'].forEach(function(id){
+/* The per-chain gas inputs are wired up after the data arrives, since they do
+   not exist until then. Only the fixed controls are wired here. */
+['dep','re','chain'].forEach(function(id){
   $(id).addEventListener('input',render);$(id).addEventListener('change',render);});
 
 fetch('/best-pools.json?v='+Date.now()).then(function(r){
