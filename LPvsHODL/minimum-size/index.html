@@ -47,10 +47,18 @@ h1 em{font-style:normal;color:var(--accent)}
 .lede{color:var(--soft);max-width:64ch;margin:0 0 22px}
 .inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;
   background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:16px 18px;margin-bottom:8px}
-label{display:block;font-size:13px;color:var(--soft);margin-bottom:5px}
+label{display:block;font-size:13px;color:var(--soft);margin-bottom:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 input,select{width:100%;background:var(--field);color:var(--ink);border:1px solid var(--rule);
   border-radius:9px;padding:9px 11px;font-size:15px;font-family:inherit}
 .hint{font-size:12.5px;color:var(--soft);margin:8px 0 22px;line-height:1.6}
+details#adv{margin:0 0 22px}
+details#adv summary{cursor:pointer;font-size:13px;color:var(--soft);
+  font-family:"IBM Plex Mono",monospace;list-style:none;display:inline-block;
+  border:1px solid var(--rule);border-radius:99px;padding:6px 13px}
+details#adv summary::-webkit-details-marker{display:none}
+details#adv summary:hover{color:var(--ink)}
+details#adv[open] summary{margin-bottom:4px}
 .headline{background:var(--card);border:1px solid var(--rule);border-radius:14px;
   padding:18px 20px;margin-bottom:20px}
 .big{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
@@ -103,12 +111,15 @@ than an advertised rate.</p>
   </div>
 </div>
 
-<div class="inputs" id="gasBox" style="margin-top:10px"></div>
+<p class="hint" id="gasNote"></p>
 
-<p class="hint" id="gasNote">Gas is per chain because that is where the difference lives &mdash;
-the same transaction costs pennies on one chain and tens of dollars on another. Charging every pool
-the same figure would make the cheap chains look far worse than they are. Opening and closing is
-2 transactions; each re-centre is 2 more.</p>
+<details id="adv">
+  <summary>Advanced &mdash; set gas costs yourself</summary>
+  <div class="inputs" id="gasBox" style="margin-top:12px"></div>
+  <p class="hint" style="margin-top:10px">Gas is per chain because that is where the difference
+  lives: the same transaction costs pennies on one chain and dollars on another. Opening and
+  closing is 2 transactions; each re-centre is 2 more.</p>
+</details>
 
 <div class="headline">
   <div class="big" id="hBig">Loading&hellip;</div>
@@ -118,8 +129,8 @@ the same figure would make the cheap chains look far worse than they are. Openin
 <div class="scroll">
 <table>
   <thead><tr>
-    <th>Pool</th><th>Fees on your deposit</th><th>Gas cost</th>
-    <th>Gas as share of fees</th><th>Break-even deposit</th><th>Worth it above</th>
+    <th>Pool</th><th>Fees earned in a year</th><th>Gas you pay</th>
+    <th>Gas vs fees</th><th>Break-even</th><th>Worth it above</th>
   </tr></thead>
   <tbody id="rows"></tbody>
 </table>
@@ -153,6 +164,9 @@ function esc(s){return String(s).replace(/[&<>"]/g,function(c){
 function money(v){
   if(!isFinite(v))return '\u2014';
   if(v>=1000)return '$'+Math.round(v).toLocaleString();
+  /* Anything under a cent used to print as $0.00, which reads as free rather
+     than as very cheap. Say what it is instead. */
+  if(v>0&&v<0.01)return '<$0.01';
   return '$'+v.toFixed(v<10?2:0);
 }
 function n(id){var el=$(id);if(!el)return 0;var v=parseFloat(el.value);return isFinite(v)?v:0;}
@@ -191,19 +205,26 @@ function render(){
   if(!pools.length){$('rows').innerHTML='';$('hBig').textContent='No pools for that chain.';
     $('hSub').textContent='';return;}
 
-  var rows=pools.map(function(p){return work(p,dep,gasFor(p.chain),re);})
-                .sort(function(a,b){return a.breakeven-b.breakeven;});
-
-  var missing=[];
-  pools.forEach(function(p){
-    if(missing.indexOf(p.chain)<0 && !(gasFor(p.chain)>0))missing.push(p.chain);});
-  if(missing.length){
-    $('hBig').textContent='Enter your gas costs above';
-    $('hSub').textContent='Still needed for: '+missing.sort().join(', ')+
-      '. Without a figure a chain would be priced at zero gas, which would say every pool is worth it.';
+  /* If a chain has no gas figure at all, its pools are left out rather than
+     priced at zero. Showing them free would say every pool is worth it, which is
+     the opposite of what this page is for. Done before anything is costed, so
+     nothing downstream sees a pool priced at nothing. */
+  var noGas=[];
+  pools=pools.filter(function(p){
+    if(gasFor(p.chain)>0)return true;
+    if(noGas.indexOf(p.chain)<0)noGas.push(p.chain);
+    return false;
+  });
+  if(!pools.length){
+    $('hBig').textContent='Gas costs aren\u2019t available right now';
+    $('hSub').textContent='Set them yourself under Advanced and the table will fill in.';
     $('rows').innerHTML='';
     return;
   }
+
+  var rows=pools.map(function(p){return work(p,dep,gasFor(p.chain),re);})
+                .sort(function(a,b){return a.breakeven-b.breakeven;});
+  if(noGas.length&&$('gasNote').dataset)$('gasNote').dataset.dropped=noGas.sort().join(', ');
 
   var usable=rows.filter(function(r){return isFinite(r.breakeven)&&dep>=r.breakeven;}).length;
   var cheapest=rows[0];
@@ -251,7 +272,7 @@ fetch('/best-pools.json?v='+Date.now()).then(function(r){
   var gp=(j.gas&&j.gas.perTx)||{};
   $('gasBox').innerHTML=chains.map(function(c){
     var v=gp[c];
-    return '<div><label for="gas-'+esc(c)+'">Gas per transaction on '+esc(c)+' (USD)</label>'+
+    return '<div><label for="gas-'+esc(c)+'">'+esc(c)+' &mdash; $ per transaction</label>'+
       '<input id="gas-'+esc(c)+'" type="number" min="0" step="0.0001"'+
       (v>0?' value="'+v+'"':' placeholder="enter a figure"')+'></div>';
   }).join('');
@@ -259,13 +280,13 @@ fetch('/best-pools.json?v='+Date.now()).then(function(r){
     $('gas-'+c).addEventListener('input',render);
     $('gas-'+c).addEventListener('change',render);
   });
-  if(j.gas&&j.gas.measuredAt){
-    $('gasNote').innerHTML='Gas figures are the price read from each chain on '+
-      esc(new Date(j.gas.measuredAt).toUTCString().slice(0,16))+', at roughly '+
-      (j.gas.gasUnits||250000).toLocaleString()+' gas units per transaction. Gas moves constantly, '+
-      'so treat these as a starting point and change them if you know better. Opening and closing '+
-      'is 2 transactions; each re-centre is 2 more.';
-  }
+  /* Gas is worked out for you. Saying so plainly matters more than showing the
+     figures, because the reader this page is for does not know what a gwei is
+     and should not have to. */
+  $('gasNote').innerHTML='Gas is included automatically, priced from each chain on '+
+    esc(new Date((j.gas&&j.gas.measuredAt)||Date.now()).toUTCString().slice(0,16))+
+    ' \u2014 which is why the same pool needs a bigger deposit on Ethereum than on a cheaper chain.'+
+    ' You can override it under Advanced.';
   $('foot').innerHTML='Fees are what each pool actually paid over the last '+j.window.days+
     ' days at a &plusmn;25% range, scaled to your deposit. Past results for one fixed strategy, '+
     'not a forecast \u2014 a pool that paid well last year can pay nothing this year. '+
