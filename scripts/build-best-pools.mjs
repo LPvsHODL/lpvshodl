@@ -35,7 +35,8 @@ const SITE_DIR = path.join(ROOT, 'LPvsHODL');
 
 /* Pages that exist regardless of what the run finds. Listed here because the
    sitemap is rewritten wholesale each night and would otherwise drop them. */
-const CORE_PAGES = ['/', '/best-pools/', '/minimum-size/', '/impermanent-loss/'];
+const CORE_PAGES = ['/', '/best-pools/', '/minimum-size/', '/impermanent-loss/',
+                    '/good-apr/', '/uniswap-v2-vs-v3/', '/choosing-a-price-range/'];
 
 const DEPOSIT = 10000;          /* every pool tested at the same size */
 const BANDS = [10, 25, 50];     /* percent either side of the entry price */
@@ -83,6 +84,35 @@ const MIN_DAYS = 300;           /* needs most of the year to be judged over one 
    43,000 a month against a 100,000 allowance — leaving room for actual visitors.
    Raising this materially means paying for a bigger plan. */
 const PER_CHAIN = 60;
+
+/* Public RPC endpoints, used only to read the current gas price. No key, no
+   account, and the only call made is eth_gasPrice. Every URL here was confirmed
+   against a live page; a chain missing or failing simply produces no gas figure
+   and the page asks the visitor for one instead. */
+const RPCS = {
+  ethereum: 'https://ethereum-rpc.publicnode.com',
+  base: 'https://base-rpc.publicnode.com',
+  arbitrum: 'https://arbitrum-one-rpc.publicnode.com',
+  optimism: 'https://optimism-rpc.publicnode.com',
+  polygon: 'https://polygon-bor-rpc.publicnode.com',
+  avalanche: 'https://avalanche-c-chain-rpc.publicnode.com'
+};
+
+/* Which token pays for gas on each chain, so the price can be turned into
+   dollars using prices this job already has from the pools it read. */
+const NATIVE = {
+  ethereum: /^WETH$/i, base: /^WETH$/i, arbitrum: /^WETH$/i, optimism: /^WETH$/i,
+  polygon: /^(WMATIC|WPOL|POL|MATIC)$/i, avalanche: /^(WAVAX|AVAX)$/i
+};
+
+/* Opening a concentrated position, closing it, or swapping to rebalance all sit
+   somewhere around this. It is an approximation and labelled as one on the page
+   — the point is that the difference BETWEEN chains is enormous and the
+   difference between one transaction type and another is not. */
+const GAS_UNITS = 250000;
+
+/* Filled in as pools are read, then used to convert gas prices into dollars. */
+const NATIVE_PX = {};
 
 /* GeckoTerminal's network slugs -> the names our own endpoint knows. Only
    chains where a real fee record exists belong here. */
@@ -335,6 +365,14 @@ async function assess(chain, pool, FEEQ) {
   const d0 = j.pool.token0.decimals, d1 = j.pool.token1.decimals;
   const s0 = j.pool.token0.symbol || '?', s1 = j.pool.token1.symbol || '?';
 
+  /* Note what this chain's gas token is worth, taken from a pool that trades it.
+     Cheaper and more consistent than asking a price API separately. */
+  const last = rows[rows.length - 1], nat = NATIVE[chain];
+  if (nat && last) {
+    if (nat.test(s0) && last.p0 > 0) NATIVE_PX[chain] = last.p0;
+    else if (nat.test(s1) && last.p1 > 0) NATIVE_PX[chain] = last.p1;
+  }
+
   const recent = rows.slice(-DAYS);
   if (recent.length < MIN_DAYS) {
     return { rejected: 'not enough recent history', quiet: true };
@@ -555,6 +593,33 @@ function writePages(payload) {
   return written;
 }
 
+/* Current gas price per chain, in dollars per transaction. Anything that fails
+   is left out rather than guessed at. */
+async function gasPrices(nativeUSD) {
+  const out = {};
+  for (const [chain, url] of Object.entries(RPCS)) {
+    const px = nativeUSD[chain];
+    if (!(px > 0)) { console.error(`  gas ${chain}: no native token price, skipped`); continue; }
+    try {
+      const r = await fetch(url, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_gasPrice', params: [] })
+      });
+      if (!r.ok) { console.error(`  gas ${chain}: HTTP ${r.status}`); continue; }
+      const j = await r.json();
+      const wei = parseInt(j && j.result, 16);
+      if (!isFinite(wei) || wei <= 0) { console.error(`  gas ${chain}: bad reply`); continue; }
+      const usd = (wei * GAS_UNITS / 1e18) * px;
+      out[chain] = +usd.toFixed(usd < 1 ? 4 : 2);
+      console.error(`  gas ${chain}: ${(wei / 1e9).toFixed(3)} gwei -> $${out[chain]}`);
+    } catch (e) {
+      console.error(`  gas ${chain}: ${e.message}`);
+    }
+    await sleep(300);
+  }
+  return out;
+}
+
 async function main() {
   const FEEQ = loadMaths();
   const pools = [];
@@ -605,10 +670,16 @@ async function main() {
   pools.sort((a, b) =>
     (b.bands[25].vsHold - a.bands[25].vsHold) || (b.quartersWon - a.quartersWon));
 
+  console.error('\nreading current gas prices:');
+  const gas = await gasPrices(NATIVE_PX);
+
   const won = pools.filter(p => p.bands[25].vsHold > 0).length;
   const payload = {
     generated: new Date().toISOString(),
     window: { days: DAYS, deposit: DEPOSIT, bands: BANDS, sortBand: 25 },
+    /* Dollars per transaction, read from each chain at the time of the run.
+       A starting point for the minimum-size page, not a promise. */
+    gas: { perTx: gas, gasUnits: GAS_UNITS, measuredAt: new Date().toISOString() },
     summary: { tested: pools.length, beatHolding: won, lostToHolding: pools.length - won,
                examined: looked, skipped, skipReasons: why },
     pools
