@@ -105,12 +105,10 @@ than an advertised rate.</p>
 
 <div class="inputs" id="gasBox" style="margin-top:10px"></div>
 
-<p class="hint">Gas is entered per chain because that is where the difference actually lives:
-the same transaction can cost pennies on one chain and tens of dollars on another. Charging every
-pool the same figure would make the cheap chains look far worse than they are, which is the sort
-of thing that quietly ruins a ranking. Nothing is filled in for you &mdash; check what a swap costs
-right now on each chain and put that number in. Opening and closing is 2 transactions; each
-re-centre is 2 more.</p>
+<p class="hint" id="gasNote">Gas is per chain because that is where the difference lives &mdash;
+the same transaction costs pennies on one chain and tens of dollars on another. Charging every pool
+the same figure would make the cheap chains look far worse than they are. Opening and closing is
+2 transactions; each re-centre is 2 more.</p>
 
 <div class="headline">
   <div class="big" id="hBig">Loading&hellip;</div>
@@ -247,14 +245,27 @@ fetch('/best-pools.json?v='+Date.now()).then(function(r){
 
   /* Every input starts empty. A default here would be a number nobody checked,
      applied to somebody's real decision. */
+  /* Pre-filled with the gas price actually read from each chain during the
+     overnight run, and still editable. Measured rather than invented, which is
+     the only version of a default this site should ship. */
+  var gp=(j.gas&&j.gas.perTx)||{};
   $('gasBox').innerHTML=chains.map(function(c){
+    var v=gp[c];
     return '<div><label for="gas-'+esc(c)+'">Gas per transaction on '+esc(c)+' (USD)</label>'+
-      '<input id="gas-'+esc(c)+'" type="number" min="0" step="0.01" placeholder="e.g. 0.05"></div>';
+      '<input id="gas-'+esc(c)+'" type="number" min="0" step="0.0001"'+
+      (v>0?' value="'+v+'"':' placeholder="enter a figure"')+'></div>';
   }).join('');
   chains.forEach(function(c){
     $('gas-'+c).addEventListener('input',render);
     $('gas-'+c).addEventListener('change',render);
   });
+  if(j.gas&&j.gas.measuredAt){
+    $('gasNote').innerHTML='Gas figures are the price read from each chain on '+
+      esc(new Date(j.gas.measuredAt).toUTCString().slice(0,16))+', at roughly '+
+      (j.gas.gasUnits||250000).toLocaleString()+' gas units per transaction. Gas moves constantly, '+
+      'so treat these as a starting point and change them if you know better. Opening and closing '+
+      'is 2 transactions; each re-centre is 2 more.';
+  }
   $('foot').innerHTML='Fees are what each pool actually paid over the last '+j.window.days+
     ' days at a &plusmn;25% range, scaled to your deposit. Past results for one fixed strategy, '+
     'not a forecast \u2014 a pool that paid well last year can pay nothing this year. '+
