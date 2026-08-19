@@ -369,8 +369,14 @@ async function assess(chain, pool, FEEQ) {
      Cheaper and more consistent than asking a price API separately. */
   const last = rows[rows.length - 1], nat = NATIVE[chain];
   if (nat && last) {
-    if (nat.test(s0) && last.p0 > 0) NATIVE_PX[chain] = last.p0;
-    else if (nat.test(s1) && last.p1 > 0) NATIVE_PX[chain] = last.p1;
+    var np = nat.test(s0) ? last.p0 : (nat.test(s1) ? last.p1 : 0);
+    /* A sanity band, because a bad price here silently poisons every gas figure
+       on the chain. Nothing on these chains has a gas token worth under a cent
+       or over a hundred thousand dollars. */
+    if (np > 0.01 && np < 100000 && !NATIVE_PX[chain]) {
+      NATIVE_PX[chain] = np;
+      console.error(`  native price ${chain}: $${np.toFixed(2)} (from ${s0}/${s1})`);
+    }
   }
 
   const recent = rows.slice(-DAYS);
@@ -611,7 +617,17 @@ async function gasPrices(nativeUSD) {
       if (!isFinite(wei) || wei <= 0) { console.error(`  gas ${chain}: bad reply`); continue; }
       const usd = (wei * GAS_UNITS / 1e18) * px;
       out[chain] = +usd.toFixed(usd < 1 ? 4 : 2);
-      console.error(`  gas ${chain}: ${(wei / 1e9).toFixed(3)} gwei -> $${out[chain]}`);
+      /* Everything that went into the figure, because a wrong gas price and a
+         wrong token price produce the same wrong dollar amount and there is no
+         telling them apart afterwards. */
+      console.error(`  gas ${chain}: ${(wei / 1e9).toFixed(4)} gwei ` +
+                    `x ${GAS_UNITS} units x $${px.toFixed(2)}/native -> $${out[chain]}`);
+      /* Ethereum mainnet has not been this cheap in its history. If this fires,
+         either the RPC answered with something odd or the native price is wrong. */
+      if (chain === 'ethereum' && usd < 0.20) {
+        console.error(`  !! ethereum gas of $${out[chain]} is implausible — ` +
+                      `check the gwei and native price above`);
+      }
     } catch (e) {
       console.error(`  gas ${chain}: ${e.message}`);
     }
