@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-22T05:51:21.503Z",
+ "generated": "2026-08-23T05:54:59.233Z",
  "window": {
   "days": 365,
   "deposit": 10000,
@@ -12,27 +12,28 @@
  },
  "gas": {
   "perTx": {
-   "ethereum": 1.71,
-   "base": 0.0126,
-   "arbitrum": 0.0126,
-   "optimism": 0.0008,
-   "polygon": 0.0104,
-   "avalanche": 0.0034
+   "ethereum": 0.1415,
+   "base": 0.0042,
+   "arbitrum": 0.0119,
+   "optimism": 0,
+   "polygon": 0.0093,
+   "avalanche": 0.0001
   },
   "gasUnits": 250000,
-  "measuredAt": "2026-08-22T05:51:21.503Z"
+  "measuredAt": "2026-08-23T05:54:59.234Z"
  },
  "summary": {
-  "tested": 56,
-  "beatHolding": 27,
-  "lostToHolding": 29,
-  "examined": 158,
-  "skipped": 102,
+  "tested": 38,
+  "beatHolding": 18,
+  "lostToHolding": 20,
+  "examined": 142,
+  "skipped": 104,
   "skipReasons": {
-   "no fee record": 87,
+   "no fee record": 86,
    "vN pair had only N usable days of N rows": 3,
-   "position would be N% of this pool's liquidity": 7,
-   "only N days of usable history": 5
+   "position would be N% of this pool's liquidity": 9,
+   "only N days of usable history": 5,
+   "vN endpoint said: chain_unsupported": 1
   }
  },
  "pools": [
@@ -43,7 +44,7 @@
    "version": "v2",
    "pair": "MANYU/WETH",
    "feeTier": 0.3,
-   "tvl": 686654,
+   "tvl": 660064,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -53,66 +54,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 77.49,
-     "feesUSD": 3408,
+     "vsHold": 77.01,
+     "feesUSD": 3387,
      "inRangePct": 100,
-     "share": 0.014121563046313616
+     "share": 0.01413979254952362
     },
     "25": {
-     "vsHold": 77.49,
-     "feesUSD": 3408,
+     "vsHold": 77.01,
+     "feesUSD": 3387,
      "inRangePct": 100,
-     "share": 0.014121563046313616
+     "share": 0.01413979254952362
     },
     "50": {
-     "vsHold": 77.49,
-     "feesUSD": 3408,
+     "vsHold": 77.01,
+     "feesUSD": 3387,
      "inRangePct": 100,
-     "share": 0.014121563046313616
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 4,
-   "quartersRated": 4
-  },
-  {
-   "chain": "base",
-   "address": "0x9c087eb773291e50cf6c6a90ef0f4500e349b903",
-   "dex": "uniswap-v3-base",
-   "version": "v3",
-   "pair": "VIRTUAL/WETH",
-   "feeTier": 0.05,
-   "tvl": 492420,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "VIRTUAL",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 42.24,
-     "feesUSD": 2357,
-     "inRangePct": 28,
-     "share": 0.018733847677077003
-    },
-    "25": {
-     "vsHold": 38.86,
-     "feesUSD": 2125,
-     "inRangePct": 68,
-     "share": 0.007917113033678091
-    },
-    "50": {
-     "vsHold": 35.45,
-     "feesUSD": 1918,
-     "inRangePct": 97,
-     "share": 0.004250163167266388
+     "share": 0.01413979254952362
     }
    },
    "quarters": [
@@ -131,7 +88,7 @@
    "version": "v2",
    "pair": "XCN/WETH",
    "feeTier": 0.3,
-   "tvl": 780927,
+   "tvl": 730798,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -141,22 +98,66 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 33.43,
-     "feesUSD": 1487,
+     "vsHold": 34.45,
+     "feesUSD": 1493,
      "inRangePct": 100,
-     "share": 0.007389004929432482
+     "share": 0.007420917051385274
     },
     "25": {
-     "vsHold": 33.43,
-     "feesUSD": 1487,
+     "vsHold": 34.45,
+     "feesUSD": 1493,
      "inRangePct": 100,
-     "share": 0.007389004929432482
+     "share": 0.007420917051385274
     },
     "50": {
-     "vsHold": 33.43,
-     "feesUSD": 1487,
+     "vsHold": 34.45,
+     "feesUSD": 1493,
      "inRangePct": 100,
-     "share": 0.007389004929432482
+     "share": 0.007420917051385274
+    }
+   },
+   "quarters": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "quartersWon": 4,
+   "quartersRated": 4
+  },
+  {
+   "chain": "base",
+   "address": "0x9c087eb773291e50cf6c6a90ef0f4500e349b903",
+   "dex": "uniswap-v3-base",
+   "version": "v3",
+   "pair": "VIRTUAL/WETH",
+   "feeTier": 0.05,
+   "tvl": 494767,
+   "stable": false,
+   "oneStable": false,
+   "tokens": [
+    "VIRTUAL",
+    "WETH"
+   ],
+   "days": 365,
+   "bands": {
+    "10": {
+     "vsHold": 35.52,
+     "feesUSD": 1946,
+     "inRangePct": 24,
+     "share": 0.018591264497500763
+    },
+    "25": {
+     "vsHold": 32.02,
+     "feesUSD": 1705,
+     "inRangePct": 59,
+     "share": 0.008218343820966438
+    },
+    "50": {
+     "vsHold": 34.01,
+     "feesUSD": 1781,
+     "inRangePct": 96,
+     "share": 0.004276957042911079
     }
    },
    "quarters": [
@@ -175,7 +176,7 @@
    "version": "v2",
    "pair": "WETH/SPX",
    "feeTier": 0.3,
-   "tvl": 11907398,
+   "tvl": 11597504,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -185,22 +186,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 25.28,
-     "feesUSD": 1156,
+     "vsHold": 25.97,
+     "feesUSD": 1158,
      "inRangePct": 100,
-     "share": 0.0008750876331015769
+     "share": 0.000876435460288169
     },
     "25": {
-     "vsHold": 25.28,
-     "feesUSD": 1156,
+     "vsHold": 25.97,
+     "feesUSD": 1158,
      "inRangePct": 100,
-     "share": 0.0008750876331015769
+     "share": 0.000876435460288169
     },
     "50": {
-     "vsHold": 25.28,
-     "feesUSD": 1156,
+     "vsHold": 25.97,
+     "feesUSD": 1158,
      "inRangePct": 100,
-     "share": 0.0008750876331015769
+     "share": 0.000876435460288169
     }
    },
    "quarters": [
@@ -219,7 +220,7 @@
    "version": "v2",
    "pair": "HEX/WETH",
    "feeTier": 0.3,
-   "tvl": 588491,
+   "tvl": 565585,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -229,22 +230,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 23.73,
-     "feesUSD": 1801,
+     "vsHold": 25.12,
+     "feesUSD": 1804,
      "inRangePct": 100,
-     "share": 0.025345546679231865
+     "share": 0.025359066729998877
     },
     "25": {
-     "vsHold": 23.73,
-     "feesUSD": 1801,
+     "vsHold": 25.12,
+     "feesUSD": 1804,
      "inRangePct": 100,
-     "share": 0.025345546679231865
+     "share": 0.025359066729998877
     },
     "50": {
-     "vsHold": 23.73,
-     "feesUSD": 1801,
+     "vsHold": 25.12,
+     "feesUSD": 1804,
      "inRangePct": 100,
-     "share": 0.025345546679231865
+     "share": 0.025359066729998877
     }
    },
    "quarters": [
@@ -258,56 +259,12 @@
   },
   {
    "chain": "ethereum",
-   "address": "0xbc7ce7b6b5437d7d715fbb1cc7b4ec12399c5516",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "Yee/WETH",
-   "feeTier": 0.3,
-   "tvl": 500552,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "YEE",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 22.94,
-     "feesUSD": 3235,
-     "inRangePct": 100,
-     "share": 0.023046848962149105
-    },
-    "25": {
-     "vsHold": 22.94,
-     "feesUSD": 3235,
-     "inRangePct": 100,
-     "share": 0.023046848962149105
-    },
-    "50": {
-     "vsHold": 22.94,
-     "feesUSD": 3235,
-     "inRangePct": 100,
-     "share": 0.023046848962149105
-    }
-   },
-   "quarters": [
-    true,
-    false,
-    true,
-    true
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
    "address": "0x69c7bd26512f52bf6f76fab834140d13dda673ca",
    "dex": "uniswap_v2",
    "version": "v2",
    "pair": "NPC/WETH",
    "feeTier": 0.3,
-   "tvl": 2988679,
+   "tvl": 3055229,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -317,154 +274,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 22.9,
-     "feesUSD": 1066,
+     "vsHold": 23.84,
+     "feesUSD": 1071,
      "inRangePct": 100,
-     "share": 0.003320522654003593
+     "share": 0.0033250708191266574
     },
     "25": {
-     "vsHold": 22.9,
-     "feesUSD": 1066,
+     "vsHold": 23.84,
+     "feesUSD": 1071,
      "inRangePct": 100,
-     "share": 0.003320522654003593
+     "share": 0.0033250708191266574
     },
     "50": {
-     "vsHold": 22.9,
-     "feesUSD": 1066,
+     "vsHold": 23.84,
+     "feesUSD": 1071,
      "inRangePct": 100,
-     "share": 0.003320522654003593
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 4,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0xfff8d5fff6ee3226fa2f5d7d5d8c3ff785be9c74",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "KEKIUS/WETH",
-   "feeTier": 0.3,
-   "tvl": 961604,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "KEKIUS",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 22.06,
-     "feesUSD": 1055,
-     "inRangePct": 100,
-     "share": 0.010549529312195258
-    },
-    "25": {
-     "vsHold": 22.06,
-     "feesUSD": 1055,
-     "inRangePct": 100,
-     "share": 0.010549529312195258
-    },
-    "50": {
-     "vsHold": 22.06,
-     "feesUSD": 1055,
-     "inRangePct": 100,
-     "share": 0.010549529312195258
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 4,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x819f3450da6f110ba6ea52195b3beafa246062de",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "MATIC/WETH",
-   "feeTier": 0.3,
-   "tvl": 252217,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "MATIC",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 20.33,
-     "feesUSD": 971,
-     "inRangePct": 100,
-     "share": 0.03728355576108505
-    },
-    "25": {
-     "vsHold": 20.33,
-     "feesUSD": 971,
-     "inRangePct": 100,
-     "share": 0.03728355576108505
-    },
-    "50": {
-     "vsHold": 20.33,
-     "feesUSD": 971,
-     "inRangePct": 100,
-     "share": 0.03728355576108505
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 4,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x7fd91c569f66ba7eda9b72454e879c206c44c0e1",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "BGB/WETH",
-   "feeTier": 0.3,
-   "tvl": 454478,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "BGB",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 16.29,
-     "feesUSD": 776,
-     "inRangePct": 100,
-     "share": 0.019012902230969568
-    },
-    "25": {
-     "vsHold": 16.29,
-     "feesUSD": 776,
-     "inRangePct": 100,
-     "share": 0.019012902230969568
-    },
-    "50": {
-     "vsHold": 16.29,
-     "feesUSD": 776,
-     "inRangePct": 100,
-     "share": 0.019012902230969568
+     "share": 0.0033250708191266574
     }
    },
    "quarters": [
@@ -483,7 +308,7 @@
    "version": "v2",
    "pair": "Neiro/WETH",
    "feeTier": 0.3,
-   "tvl": 3539689,
+   "tvl": 3456633,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -493,22 +318,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 12.39,
-     "feesUSD": 735,
+     "vsHold": 13.45,
+     "feesUSD": 740,
      "inRangePct": 100,
-     "share": 0.002820670494923428
+     "share": 0.0028257730862513973
     },
     "25": {
-     "vsHold": 12.39,
-     "feesUSD": 735,
+     "vsHold": 13.45,
+     "feesUSD": 740,
      "inRangePct": 100,
-     "share": 0.002820670494923428
+     "share": 0.0028257730862513973
     },
     "50": {
-     "vsHold": 12.39,
-     "feesUSD": 735,
+     "vsHold": 13.45,
+     "feesUSD": 740,
      "inRangePct": 100,
-     "share": 0.002820670494923428
+     "share": 0.0028257730862513973
     }
    },
    "quarters": [
@@ -521,101 +346,13 @@
    "quartersRated": 4
   },
   {
-   "chain": "polygon",
-   "address": "0x3dc10d7bfb94eeb009203e84a653e5764f71771d",
-   "dex": "uniswap_v3_polygon_pos",
+   "chain": "ethereum",
+   "address": "0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801",
+   "dex": "uniswap_v3",
    "version": "v3",
-   "pair": "LINK/WETH",
-   "feeTier": 0.05,
-   "tvl": 275735,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "LINK",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 2.66,
-     "feesUSD": 311,
-     "inRangePct": 13,
-     "share": 0.04055849694918627
-    },
-    "25": {
-     "vsHold": 12.3,
-     "feesUSD": 670,
-     "inRangePct": 90,
-     "share": 0.011634027554746752
-    },
-    "50": {
-     "vsHold": 6.69,
-     "feesUSD": 363,
-     "inRangePct": 100,
-     "share": 0.006051977194605413
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 4,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x25647e01bd0967c1b9599fa3521939871d1d0888",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "WETH/SUPER",
-   "feeTier": 0.3,
-   "tvl": 2457251,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "WETH",
-    "SUPER"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 10.9,
-     "feesUSD": 893,
-     "inRangePct": 100,
-     "share": 0.0033001231288181066
-    },
-    "25": {
-     "vsHold": 10.9,
-     "feesUSD": 893,
-     "inRangePct": 100,
-     "share": 0.0033001231288181066
-    },
-    "50": {
-     "vsHold": 10.9,
-     "feesUSD": 893,
-     "inRangePct": 100,
-     "share": 0.0033001231288181066
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    false
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0xd3d2e2692501a5c9ca623199d38826e513033a17",
-   "dex": "uniswap_v2",
-   "version": "v2",
    "pair": "UNI/WETH",
    "feeTier": 0.3,
-   "tvl": 2862317,
+   "tvl": 11767771,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -625,22 +362,66 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 10.12,
-     "feesUSD": 503,
-     "inRangePct": 100,
-     "share": 0.003335983760305792
+     "vsHold": 5.3,
+     "feesUSD": 784,
+     "inRangePct": 15,
+     "share": 0.0039916264611432085
     },
     "25": {
-     "vsHold": 10.12,
-     "feesUSD": 503,
-     "inRangePct": 100,
-     "share": 0.003335983760305792
+     "vsHold": 13.12,
+     "feesUSD": 960,
+     "inRangePct": 57,
+     "share": 0.0014807158866161855
     },
     "50": {
-     "vsHold": 10.12,
-     "feesUSD": 503,
+     "vsHold": 13.1,
+     "feesUSD": 779,
      "inRangePct": 100,
-     "share": 0.003335983760305792
+     "share": 0.0008995454149719949
+    }
+   },
+   "quarters": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "quartersWon": 4,
+   "quartersRated": 4
+  },
+  {
+   "chain": "polygon",
+   "address": "0x3dc10d7bfb94eeb009203e84a653e5764f71771d",
+   "dex": "uniswap_v3_polygon_pos",
+   "version": "v3",
+   "pair": "LINK/WETH",
+   "feeTier": 0.05,
+   "tvl": 265253,
+   "stable": false,
+   "oneStable": false,
+   "tokens": [
+    "LINK",
+    "WETH"
+   ],
+   "days": 365,
+   "bands": {
+    "10": {
+     "vsHold": 1.87,
+     "feesUSD": 306,
+     "inRangePct": 14,
+     "share": 0.04005398915040791
+    },
+    "25": {
+     "vsHold": 12.08,
+     "feesUSD": 661,
+     "inRangePct": 92,
+     "share": 0.011639042219464737
+    },
+    "50": {
+     "vsHold": 6.44,
+     "feesUSD": 352,
+     "inRangePct": 100,
+     "share": 0.006065651254686767
     }
    },
    "quarters": [
@@ -654,37 +435,37 @@
   },
   {
    "chain": "ethereum",
-   "address": "0x811beed0119b4afce20d2583eb608c6f7af1954f",
+   "address": "0xd3d2e2692501a5c9ca623199d38826e513033a17",
    "dex": "uniswap_v2",
    "version": "v2",
-   "pair": "SHIB/WETH",
+   "pair": "UNI/WETH",
    "feeTier": 0.3,
-   "tvl": 590291,
+   "tvl": 2821083,
    "stable": false,
    "oneStable": false,
    "tokens": [
-    "SHIB",
+    "UNI",
     "WETH"
    ],
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 8.81,
-     "feesUSD": 430,
+     "vsHold": 10.62,
+     "feesUSD": 507,
      "inRangePct": 100,
-     "share": 0.015250911955426348
+     "share": 0.003341401539049007
     },
     "25": {
-     "vsHold": 8.81,
-     "feesUSD": 430,
+     "vsHold": 10.62,
+     "feesUSD": 507,
      "inRangePct": 100,
-     "share": 0.015250911955426348
+     "share": 0.003341401539049007
     },
     "50": {
-     "vsHold": 8.81,
-     "feesUSD": 430,
+     "vsHold": 10.62,
+     "feesUSD": 507,
      "inRangePct": 100,
-     "share": 0.015250911955426348
+     "share": 0.003341401539049007
     }
    },
    "quarters": [
@@ -703,7 +484,7 @@
    "version": "v2",
    "pair": "PEPE/WETH",
    "feeTier": 0.3,
-   "tvl": 28700083,
+   "tvl": 28268818,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -713,22 +494,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 8.8,
-     "feesUSD": 449,
+     "vsHold": 9.41,
+     "feesUSD": 456,
      "inRangePct": 100,
-     "share": 0.00034677846286795344
+     "share": 0.00034731846368629677
     },
     "25": {
-     "vsHold": 8.8,
-     "feesUSD": 449,
+     "vsHold": 9.41,
+     "feesUSD": 456,
      "inRangePct": 100,
-     "share": 0.00034677846286795344
+     "share": 0.00034731846368629677
     },
     "50": {
-     "vsHold": 8.8,
-     "feesUSD": 449,
+     "vsHold": 9.41,
+     "feesUSD": 456,
      "inRangePct": 100,
-     "share": 0.00034677846286795344
+     "share": 0.00034731846368629677
     }
    },
    "quarters": [
@@ -742,37 +523,37 @@
   },
   {
    "chain": "ethereum",
-   "address": "0xa2107fa5b38d9bbd2c461d6edf11b11a50f6b974",
+   "address": "0x811beed0119b4afce20d2583eb608c6f7af1954f",
    "dex": "uniswap_v2",
    "version": "v2",
-   "pair": "LINK/WETH",
+   "pair": "SHIB/WETH",
    "feeTier": 0.3,
-   "tvl": 1366501,
+   "tvl": 565238,
    "stable": false,
    "oneStable": false,
    "tokens": [
-    "LINK",
+    "SHIB",
     "WETH"
    ],
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 4.93,
-     "feesUSD": 247,
+     "vsHold": 9.07,
+     "feesUSD": 432,
      "inRangePct": 100,
-     "share": 0.007366517244516519
+     "share": 0.015279080170685702
     },
     "25": {
-     "vsHold": 4.93,
-     "feesUSD": 247,
+     "vsHold": 9.07,
+     "feesUSD": 432,
      "inRangePct": 100,
-     "share": 0.007366517244516519
+     "share": 0.015279080170685702
     },
     "50": {
-     "vsHold": 4.93,
-     "feesUSD": 247,
+     "vsHold": 9.07,
+     "feesUSD": 432,
      "inRangePct": 100,
-     "share": 0.007366517244516519
+     "share": 0.015279080170685702
     }
    },
    "quarters": [
@@ -782,6 +563,50 @@
     true
    ],
    "quartersWon": 4,
+   "quartersRated": 4
+  },
+  {
+   "chain": "ethereum",
+   "address": "0xc2eab7d33d3cb97692ecb231a5d0e4a649cb539d",
+   "dex": "uniswap_v2",
+   "version": "v2",
+   "pair": "Mog/WETH",
+   "feeTier": 0.3,
+   "tvl": 5389653,
+   "stable": false,
+   "oneStable": false,
+   "tokens": [
+    "MOG",
+    "WETH"
+   ],
+   "days": 365,
+   "bands": {
+    "10": {
+     "vsHold": 4.42,
+     "feesUSD": 865,
+     "inRangePct": 100,
+     "share": 0.0014532397722346495
+    },
+    "25": {
+     "vsHold": 4.42,
+     "feesUSD": 865,
+     "inRangePct": 100,
+     "share": 0.0014532397722346495
+    },
+    "50": {
+     "vsHold": 4.42,
+     "feesUSD": 865,
+     "inRangePct": 100,
+     "share": 0.0014532397722346495
+    }
+   },
+   "quarters": [
+    true,
+    true,
+    true,
+    false
+   ],
+   "quartersWon": 3,
    "quartersRated": 4
   },
   {
@@ -791,7 +616,7 @@
    "version": "v3",
    "pair": "USDC/USDT",
    "feeTier": 0.01,
-   "tvl": 34440668,
+   "tvl": 34338737,
    "stable": true,
    "oneStable": false,
    "tokens": [
@@ -804,107 +629,19 @@
      "vsHold": 8.76,
      "feesUSD": 876,
      "inRangePct": 100,
-     "share": 0.000004474212546538214
+     "share": 0.000004488341401867615
     },
     "25": {
      "vsHold": 3.58,
      "feesUSD": 358,
      "inRangePct": 100,
-     "share": 0.000001827730022030992
+     "share": 0.000001833501626487616
     },
     "50": {
      "vsHold": 1.8,
      "feesUSD": 180,
      "inRangePct": 100,
-     "share": 9.190465613184109e-7
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 4,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x5ced44f03ff443bbe14d8ea23bc24425fb89e3ed",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "APU/WETH",
-   "feeTier": 0.3,
-   "tvl": 1103738,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "APU",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 3.53,
-     "feesUSD": 846,
-     "inRangePct": 100,
-     "share": 0.007998407959297718
-    },
-    "25": {
-     "vsHold": 3.53,
-     "feesUSD": 846,
-     "inRangePct": 100,
-     "share": 0.007998407959297718
-    },
-    "50": {
-     "vsHold": 3.53,
-     "feesUSD": 846,
-     "inRangePct": 100,
-     "share": 0.007998407959297718
-    }
-   },
-   "quarters": [
-    false,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0xc2eab7d33d3cb97692ecb231a5d0e4a649cb539d",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "Mog/WETH",
-   "feeTier": 0.3,
-   "tvl": 5621746,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "MOG",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 3.44,
-     "feesUSD": 864,
-     "inRangePct": 100,
-     "share": 0.0014493143287012825
-    },
-    "25": {
-     "vsHold": 3.44,
-     "feesUSD": 864,
-     "inRangePct": 100,
-     "share": 0.0014493143287012825
-    },
-    "50": {
-     "vsHold": 3.44,
-     "feesUSD": 864,
-     "inRangePct": 100,
-     "share": 0.0014493143287012825
+     "share": 9.2194871241332e-7
     }
    },
    "quarters": [
@@ -923,7 +660,7 @@
    "version": "v2",
    "pair": "DAI/WETH",
    "feeTier": 0.3,
-   "tvl": 9026201,
+   "tvl": 8929438,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -933,286 +670,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": 2.84,
+     "vsHold": 2.53,
      "feesUSD": 625,
      "inRangePct": 100,
-     "share": 0.0009782842214444767
+     "share": 0.0009795919082629973
     },
     "25": {
-     "vsHold": 2.84,
+     "vsHold": 2.53,
      "feesUSD": 625,
      "inRangePct": 100,
-     "share": 0.0009782842214444767
+     "share": 0.0009795919082629973
     },
     "50": {
-     "vsHold": 2.84,
+     "vsHold": 2.53,
      "feesUSD": 625,
      "inRangePct": 100,
-     "share": 0.0009782842214444767
-    }
-   },
-   "quarters": [
-    false,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "WETH/USDT",
-   "feeTier": 0.3,
-   "tvl": 14346339,
-   "stable": false,
-   "oneStable": true,
-   "tokens": [
-    "WETH",
-    "USDT"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 2.77,
-     "feesUSD": 621,
-     "inRangePct": 100,
-     "share": 0.0005402893679813971
-    },
-    "25": {
-     "vsHold": 2.77,
-     "feesUSD": 621,
-     "inRangePct": 100,
-     "share": 0.0005402893679813971
-    },
-    "50": {
-     "vsHold": 2.77,
-     "feesUSD": 621,
-     "inRangePct": 100,
-     "share": 0.0005402893679813971
-    }
-   },
-   "quarters": [
-    false,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "USDC/WETH",
-   "feeTier": 0.3,
-   "tvl": 19986852,
-   "stable": false,
-   "oneStable": true,
-   "tokens": [
-    "USDC",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 2.61,
-     "feesUSD": 607,
-     "inRangePct": 100,
-     "share": 0.00047963753113442294
-    },
-    "25": {
-     "vsHold": 2.61,
-     "feesUSD": 607,
-     "inRangePct": 100,
-     "share": 0.00047963753113442294
-    },
-    "50": {
-     "vsHold": 2.61,
-     "feesUSD": 607,
-     "inRangePct": 100,
-     "share": 0.00047963753113442294
-    }
-   },
-   "quarters": [
-    false,
-    true,
-    true,
-    true
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x180efc1349a69390ade25667487a826164c9c6e4",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "BEAM/WETH",
-   "feeTier": 0.3,
-   "tvl": 3078659,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "BEAM",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 2.42,
-     "feesUSD": 437,
-     "inRangePct": 100,
-     "share": 0.0024385797327977333
-    },
-    "25": {
-     "vsHold": 2.42,
-     "feesUSD": 437,
-     "inRangePct": 100,
-     "share": 0.0024385797327977333
-    },
-    "50": {
-     "vsHold": 2.42,
-     "feesUSD": 437,
-     "inRangePct": 100,
-     "share": 0.0024385797327977333
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    false
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0xcbe856765eeec3fdc505ddebf9dc612da995e593",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "LADYS/WETH",
-   "feeTier": 0.3,
-   "tvl": 854505,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "LADYS",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 1.82,
-     "feesUSD": 350,
-     "inRangePct": 100,
-     "share": 0.010084617066732738
-    },
-    "25": {
-     "vsHold": 1.82,
-     "feesUSD": 350,
-     "inRangePct": 100,
-     "share": 0.010084617066732738
-    },
-    "50": {
-     "vsHold": 1.82,
-     "feesUSD": 350,
-     "inRangePct": 100,
-     "share": 0.010084617066732738
-    }
-   },
-   "quarters": [
-    false,
-    true,
-    true,
-    false
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "avalanche",
-   "address": "0x804226ca4edb38e7ef56d16d16e92dc3223347a0",
-   "dex": "uniswap-v3-avalanche",
-   "version": "v3",
-   "pair": "USDt/USDC",
-   "feeTier": 0.01,
-   "tvl": 297280,
-   "stable": true,
-   "oneStable": false,
-   "tokens": [
-    "USDT",
-    "USDC"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 2.94,
-     "feesUSD": 294,
-     "inRangePct": 100,
-     "share": 0.00029555974677204707
-    },
-    "25": {
-     "vsHold": 1.2,
-     "feesUSD": 120,
-     "inRangePct": 100,
-     "share": 0.00012077255356241984
-    },
-    "50": {
-     "vsHold": 0.6,
-     "feesUSD": 60,
-     "inRangePct": 100,
-     "share": 0.000060734789360399614
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    false,
-    true
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "polygon",
-   "address": "0xdac8a8e6dbf8c690ec6815e0ff03491b2770255d",
-   "dex": "uniswap_v3_polygon_pos",
-   "version": "v3",
-   "pair": "USDC/USDT",
-   "feeTier": 0.01,
-   "tvl": 928938,
-   "stable": true,
-   "oneStable": false,
-   "tokens": [
-    "USDC",
-    "USDT"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": 0.09,
-     "feesUSD": 9,
-     "inRangePct": 100,
-     "share": 0.00009623723215481183
-    },
-    "25": {
-     "vsHold": 0.03,
-     "feesUSD": 3,
-     "inRangePct": 100,
-     "share": 0.000039316435796002815
-    },
-    "50": {
-     "vsHold": 0.02,
-     "feesUSD": 2,
-     "inRangePct": 100,
-     "share": 0.000019770234865411064
+     "share": 0.0009795919082629973
     }
    },
    "quarters": [
@@ -1225,47 +698,135 @@
    "quartersRated": 4
   },
   {
-   "chain": "base",
-   "address": "0x7aea2e8a3843516afa07293a10ac8e49906dabd1",
-   "dex": "uniswap-v3-base",
-   "version": "v3",
-   "pair": "WETH/cbBTC",
-   "feeTier": 0.05,
-   "tvl": 7207520,
+   "chain": "ethereum",
+   "address": "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852",
+   "dex": "uniswap_v2",
+   "version": "v2",
+   "pair": "WETH/USDT",
+   "feeTier": 0.3,
+   "tvl": 14191998,
    "stable": false,
-   "oneStable": false,
+   "oneStable": true,
    "tokens": [
     "WETH",
-    "CBBTC"
+    "USDT"
    ],
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -8.25,
-     "feesUSD": 160,
-     "inRangePct": 9,
-     "share": 0.004173825659433538
+     "vsHold": 2.48,
+     "feesUSD": 622,
+     "inRangePct": 100,
+     "share": 0.0005418858818264614
     },
     "25": {
-     "vsHold": -0.01,
-     "feesUSD": 411,
-     "inRangePct": 48,
-     "share": 0.0012792385514307195
+     "vsHold": 2.48,
+     "feesUSD": 622,
+     "inRangePct": 100,
+     "share": 0.0005418858818264614
     },
     "50": {
-     "vsHold": 1.97,
-     "feesUSD": 328,
+     "vsHold": 2.48,
+     "feesUSD": 622,
      "inRangePct": 100,
-     "share": 0.0004032550546219838
+     "share": 0.0005418858818264614
     }
    },
    "quarters": [
-    false,
+    true,
+    true,
+    true,
+    true
+   ],
+   "quartersWon": 4,
+   "quartersRated": 4
+  },
+  {
+   "chain": "ethereum",
+   "address": "0x180efc1349a69390ade25667487a826164c9c6e4",
+   "dex": "uniswap_v2",
+   "version": "v2",
+   "pair": "BEAM/WETH",
+   "feeTier": 0.3,
+   "tvl": 2912805,
+   "stable": false,
+   "oneStable": false,
+   "tokens": [
+    "BEAM",
+    "WETH"
+   ],
+   "days": 365,
+   "bands": {
+    "10": {
+     "vsHold": 2.36,
+     "feesUSD": 438,
+     "inRangePct": 100,
+     "share": 0.0024457042529657256
+    },
+    "25": {
+     "vsHold": 2.36,
+     "feesUSD": 438,
+     "inRangePct": 100,
+     "share": 0.0024457042529657256
+    },
+    "50": {
+     "vsHold": 2.36,
+     "feesUSD": 438,
+     "inRangePct": 100,
+     "share": 0.0024457042529657256
+    }
+   },
+   "quarters": [
+    true,
     true,
     true,
     false
    ],
-   "quartersWon": 2,
+   "quartersWon": 3,
+   "quartersRated": 4
+  },
+  {
+   "chain": "ethereum",
+   "address": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+   "dex": "uniswap_v2",
+   "version": "v2",
+   "pair": "USDC/WETH",
+   "feeTier": 0.3,
+   "tvl": 19767206,
+   "stable": false,
+   "oneStable": true,
+   "tokens": [
+    "USDC",
+    "WETH"
+   ],
+   "days": 365,
+   "bands": {
+    "10": {
+     "vsHold": 2.29,
+     "feesUSD": 605,
+     "inRangePct": 100,
+     "share": 0.00048015297436203395
+    },
+    "25": {
+     "vsHold": 2.29,
+     "feesUSD": 605,
+     "inRangePct": 100,
+     "share": 0.00048015297436203395
+    },
+    "50": {
+     "vsHold": 2.29,
+     "feesUSD": 605,
+     "inRangePct": 100,
+     "share": 0.00048015297436203395
+    }
+   },
+   "quarters": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "quartersWon": 4,
    "quartersRated": 4
   },
   {
@@ -1275,7 +836,7 @@
    "version": "v2",
    "pair": "WETH/FLOKI",
    "feeTier": 0.3,
-   "tvl": 7790458,
+   "tvl": 7374391,
    "stable": false,
    "oneStable": false,
    "tokens": [
@@ -1285,22 +846,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -0.62,
-     "feesUSD": 178,
+     "vsHold": -0.93,
+     "feesUSD": 179,
      "inRangePct": 100,
-     "share": 0.0011412140051061082
+     "share": 0.0011437024196788556
     },
     "25": {
-     "vsHold": -0.62,
-     "feesUSD": 178,
+     "vsHold": -0.93,
+     "feesUSD": 179,
      "inRangePct": 100,
-     "share": 0.0011412140051061082
+     "share": 0.0011437024196788556
     },
     "50": {
-     "vsHold": -0.62,
-     "feesUSD": 178,
+     "vsHold": -0.93,
+     "feesUSD": 179,
      "inRangePct": 100,
-     "share": 0.0011412140051061082
+     "share": 0.0011437024196788556
     }
    },
    "quarters": [
@@ -1314,132 +875,44 @@
   },
   {
    "chain": "ethereum",
-   "address": "0x3dd49f67e9d5bc4c5e6634b3f70bfd9dc1b6bd74",
+   "address": "0x2325e3f261cadb1c30cebf66c9f95f6fb016c0d4",
    "dex": "uniswap_v2",
    "version": "v2",
-   "pair": "SAND/WETH",
+   "pair": "WETH/puppies",
    "feeTier": 0.3,
-   "tvl": 367031,
+   "tvl": 917763,
    "stable": false,
    "oneStable": false,
    "tokens": [
-    "SAND",
-    "WETH"
+    "WETH",
+    "PUPPIES"
    ],
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -2.15,
-     "feesUSD": 430,
+     "vsHold": -1.66,
+     "feesUSD": 2201,
      "inRangePct": 100,
-     "share": 0.01950636150370834
+     "share": 0.01156750906107721
     },
     "25": {
-     "vsHold": -2.15,
-     "feesUSD": 430,
+     "vsHold": -1.66,
+     "feesUSD": 2201,
      "inRangePct": 100,
-     "share": 0.01950636150370834
+     "share": 0.01156750906107721
     },
     "50": {
-     "vsHold": -2.15,
-     "feesUSD": 430,
+     "vsHold": -1.66,
+     "feesUSD": 2201,
      "inRangePct": 100,
-     "share": 0.01950636150370834
-    }
-   },
-   "quarters": [
-    true,
-    true,
-    true,
-    false
-   ],
-   "quartersWon": 3,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x4585fe77225b41b697c938b018e2ac67ac5a20c0",
-   "dex": "uniswap_v3",
-   "version": "v3",
-   "pair": "WBTC/WETH",
-   "feeTier": 0.05,
-   "tvl": 37214525,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "WBTC",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -8.31,
-     "feesUSD": 148,
-     "inRangePct": 8,
-     "share": 0.0023605013431954596
-    },
-    "25": {
-     "vsHold": -2.27,
-     "feesUSD": 300,
-     "inRangePct": 38,
-     "share": 0.0005210928425514451
-    },
-    "50": {
-     "vsHold": 1.03,
-     "feesUSD": 282,
-     "inRangePct": 89,
-     "share": 0.00014505278123861753
+     "share": 0.01156750906107721
     }
    },
    "quarters": [
     false,
     true,
-    true,
-    false
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "polygon",
-   "address": "0x50eaedb835021e4a108b7290636d62e9765cc6d7",
-   "dex": "uniswap_v3_polygon_pos",
-   "version": "v3",
-   "pair": "WBTC/WETH",
-   "feeTier": 0.05,
-   "tvl": 1343393,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "WBTC",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -8.2,
-     "feesUSD": 151,
-     "inRangePct": 8,
-     "share": 0.012002091322926128
-    },
-    "25": {
-     "vsHold": -2.68,
-     "feesUSD": 273,
-     "inRangePct": 38,
-     "share": 0.004348944695358854
-    },
-    "50": {
-     "vsHold": 1.37,
-     "feesUSD": 300,
-     "inRangePct": 89,
-     "share": 0.0019324835904535385
-    }
-   },
-   "quarters": [
     false,
-    true,
-    true,
-    false
+    true
    ],
    "quartersWon": 2,
    "quartersRated": 4
@@ -1451,7 +924,7 @@
    "version": "v2",
    "pair": "DOGE/USDT",
    "feeTier": 0.3,
-   "tvl": 3047505,
+   "tvl": 3035007,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -1461,116 +934,28 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -3.82,
-     "feesUSD": 459,
+     "vsHold": -3.58,
+     "feesUSD": 462,
      "inRangePct": 100,
-     "share": 0.0028760143312924987
+     "share": 0.002879153558025523
     },
     "25": {
-     "vsHold": -3.82,
-     "feesUSD": 459,
+     "vsHold": -3.58,
+     "feesUSD": 462,
      "inRangePct": 100,
-     "share": 0.0028760143312924987
+     "share": 0.002879153558025523
     },
     "50": {
-     "vsHold": -3.82,
-     "feesUSD": 459,
+     "vsHold": -3.58,
+     "feesUSD": 462,
      "inRangePct": 100,
-     "share": 0.0028760143312924987
-    }
-   },
-   "quarters": [
-    false,
-    false,
-    true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x9c4fe5ffd9a9fc5678cfbd93aa2d4fd684b67c4c",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "PAXG/WETH",
-   "feeTier": 0.3,
-   "tvl": 16008041,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "PAXG",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -6.39,
-     "feesUSD": 435,
-     "inRangePct": 100,
-     "share": 0.000627436198244296
-    },
-    "25": {
-     "vsHold": -6.39,
-     "feesUSD": 435,
-     "inRangePct": 100,
-     "share": 0.000627436198244296
-    },
-    "50": {
-     "vsHold": -6.39,
-     "feesUSD": 435,
-     "inRangePct": 100,
-     "share": 0.000627436198244296
-    }
-   },
-   "quarters": [
-    false,
-    false,
-    true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "polygon",
-   "address": "0x2aceda63b5e958c45bd27d916ba701bc1dc08f7a",
-   "dex": "uniswap_v3_polygon_pos",
-   "version": "v3",
-   "pair": "WETH/AAVE",
-   "feeTier": 0.3,
-   "tvl": 460907,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "WETH",
-    "AAVE"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -14.48,
-     "feesUSD": 117,
-     "inRangePct": 5,
-     "share": 0.013948387350102554
-    },
-    "25": {
-     "vsHold": -7.28,
-     "feesUSD": 267,
-     "inRangePct": 26,
-     "share": 0.007172875228988043
-    },
-    "50": {
-     "vsHold": 3.56,
-     "feesUSD": 501,
-     "inRangePct": 66,
-     "share": 0.004497169233807921
+     "share": 0.002879153558025523
     }
    },
    "quarters": [
     true,
-    true,
     false,
+    true,
     true
    ],
    "quartersWon": 3,
@@ -1578,46 +963,90 @@
   },
   {
    "chain": "ethereum",
-   "address": "0xac86903cdda380f20a06cc8a2dea7749f1558c68",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "WETH/RAIL",
-   "feeTier": 0.3,
-   "tvl": 1506344,
+   "address": "0x4585fe77225b41b697c938b018e2ac67ac5a20c0",
+   "dex": "uniswap_v3",
+   "version": "v3",
+   "pair": "WBTC/WETH",
+   "feeTier": 0.05,
+   "tvl": 37126092,
    "stable": false,
    "oneStable": false,
    "tokens": [
-    "WETH",
-    "RAIL"
+    "WBTC",
+    "WETH"
    ],
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -7.35,
-     "feesUSD": 1368,
-     "inRangePct": 100,
-     "share": 0.0077734651292393165
+     "vsHold": -10.09,
+     "feesUSD": 125,
+     "inRangePct": 7,
+     "share": 0.0024361246369899742
     },
     "25": {
-     "vsHold": -7.35,
-     "feesUSD": 1368,
-     "inRangePct": 100,
-     "share": 0.0077734651292393165
+     "vsHold": -4.54,
+     "feesUSD": 246,
+     "inRangePct": 32,
+     "share": 0.0005757818081187151
     },
     "50": {
-     "vsHold": -7.35,
-     "feesUSD": 1368,
-     "inRangePct": 100,
-     "share": 0.0077734651292393165
+     "vsHold": -0.01,
+     "feesUSD": 271,
+     "inRangePct": 86,
+     "share": 0.00015032432567472695
+    }
+   },
+   "quarters": [
+    true,
+    true,
+    true,
+    false
+   ],
+   "quartersWon": 3,
+   "quartersRated": 4
+  },
+  {
+   "chain": "polygon",
+   "address": "0x50eaedb835021e4a108b7290636d62e9765cc6d7",
+   "dex": "uniswap_v3_polygon_pos",
+   "version": "v3",
+   "pair": "WBTC/WETH",
+   "feeTier": 0.05,
+   "tvl": 1316728,
+   "stable": false,
+   "oneStable": false,
+   "tokens": [
+    "WBTC",
+    "WETH"
+   ],
+   "days": 365,
+   "bands": {
+    "10": {
+     "vsHold": -9.87,
+     "feesUSD": 136,
+     "inRangePct": 7,
+     "share": 0.011867755121849356
+    },
+    "25": {
+     "vsHold": -4.82,
+     "feesUSD": 228,
+     "inRangePct": 32,
+     "share": 0.004418566812558933
+    },
+    "50": {
+     "vsHold": 0.31,
+     "feesUSD": 288,
+     "inRangePct": 86,
+     "share": 0.00196002537041919
     }
    },
    "quarters": [
     false,
     true,
-    false,
+    true,
     false
    ],
-   "quartersWon": 1,
+   "quartersWon": 2,
    "quartersRated": 4
   },
   {
@@ -1627,7 +1056,7 @@
    "version": "v3",
    "pair": "WBTC/USDT",
    "feeTier": 0.05,
-   "tvl": 17162272,
+   "tvl": 16967979,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -1637,72 +1066,28 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -9.83,
-     "feesUSD": 728,
+     "vsHold": -9.18,
+     "feesUSD": 760,
      "inRangePct": 21,
-     "share": 0.0009319668197856828
+     "share": 0.0009619567399043928
     },
     "25": {
-     "vsHold": -7.44,
-     "feesUSD": 649,
-     "inRangePct": 41,
-     "share": 0.00037777322963943364
+     "vsHold": -6.37,
+     "feesUSD": 714,
+     "inRangePct": 43,
+     "share": 0.000382863141212682
     },
     "50": {
-     "vsHold": 0.42,
-     "feesUSD": 740,
+     "vsHold": 0.65,
+     "feesUSD": 742,
      "inRangePct": 100,
-     "share": 0.000197086003584561
+     "share": 0.00019895751476364866
     }
    },
    "quarters": [
-    false,
-    false,
     true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x9a772018fbd77fcd2d25657e5c547baff3fd7d16",
-   "dex": "uniswap_v3",
-   "version": "v3",
-   "pair": "WBTC/USDC",
-   "feeTier": 0.05,
-   "tvl": 639412,
-   "stable": false,
-   "oneStable": true,
-   "tokens": [
-    "WBTC",
-    "USDC"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -9.62,
-     "feesUSD": 743,
-     "inRangePct": 21,
-     "share": 0.0055893961469055215
-    },
-    "25": {
-     "vsHold": -7.76,
-     "feesUSD": 618,
-     "inRangePct": 41,
-     "share": 0.0024926267075630806
-    },
-    "50": {
-     "vsHold": 1.1,
-     "feesUSD": 798,
-     "inRangePct": 100,
-     "share": 0.005232385745242833
-    }
-   },
-   "quarters": [
     false,
     false,
-    true,
     true
    ],
    "quartersWon": 2,
@@ -1715,7 +1100,7 @@
    "version": "v3",
    "pair": "WBTC/USDC",
    "feeTier": 0.05,
-   "tvl": 603686,
+   "tvl": 506185,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -1725,66 +1110,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -10.64,
-     "feesUSD": 663,
+     "vsHold": -9.96,
+     "feesUSD": 695,
      "inRangePct": 21,
-     "share": 0.008582776391381145
+     "share": 0.009029253681407882
     },
     "25": {
-     "vsHold": -7.86,
-     "feesUSD": 616,
-     "inRangePct": 41,
-     "share": 0.005439696862318107
+     "vsHold": -6.96,
+     "feesUSD": 665,
+     "inRangePct": 43,
+     "share": 0.005778619011442531
     },
     "50": {
-     "vsHold": 2.15,
-     "feesUSD": 893,
+     "vsHold": 2.41,
+     "feesUSD": 897,
      "inRangePct": 100,
-     "share": 0.003779814302241022
-    }
-   },
-   "quarters": [
-    false,
-    false,
-    true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "base",
-   "address": "0xfbb6eed8e7aa03b138556eedaf5d271a5e1e43ef",
-   "dex": "uniswap-v3-base",
-   "version": "v3",
-   "pair": "USDC/cbBTC",
-   "feeTier": 0.05,
-   "tvl": 7103103,
-   "stable": false,
-   "oneStable": true,
-   "tokens": [
-    "USDC",
-    "CBBTC"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -9.67,
-     "feesUSD": 612,
-     "inRangePct": 20,
-     "share": 0.0011889775259350881
-    },
-    "25": {
-     "vsHold": -8.81,
-     "feesUSD": 385,
-     "inRangePct": 27,
-     "share": 0.000598463039134811
-    },
-    "50": {
-     "vsHold": -3.75,
-     "feesUSD": 391,
-     "inRangePct": 53,
-     "share": 0.00034613631965864833
+     "share": 0.003837019096555499
     }
    },
    "quarters": [
@@ -1803,7 +1144,7 @@
    "version": "v3",
    "pair": "USDC/WETH",
    "feeTier": 0.01,
-   "tvl": 4949426,
+   "tvl": 4285241,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -1813,22 +1154,66 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -22.77,
-     "feesUSD": 524,
+     "vsHold": -24.17,
+     "feesUSD": 493,
      "inRangePct": 8,
-     "share": 0.002796820615862995
+     "share": 0.0027023143380098444
     },
     "25": {
-     "vsHold": -17.54,
-     "feesUSD": 624,
-     "inRangePct": 19,
-     "share": 0.0012844139866307622
+     "vsHold": -18.74,
+     "feesUSD": 606,
+     "inRangePct": 18,
+     "share": 0.0012686875884588052
     },
     "50": {
-     "vsHold": -1.64,
-     "feesUSD": 1333,
+     "vsHold": -2.61,
+     "feesUSD": 1321,
      "inRangePct": 26,
-     "share": 0.0010459573724497203
+     "share": 0.0010437995265578448
+    }
+   },
+   "quarters": [
+    true,
+    false,
+    true,
+    true
+   ],
+   "quartersWon": 3,
+   "quartersRated": 4
+  },
+  {
+   "chain": "polygon",
+   "address": "0xa4d8c89f0c20efbe54cba9e7e7a7e509056228d9",
+   "dex": "uniswap_v3_polygon_pos",
+   "version": "v3",
+   "pair": "USDC/WETH",
+   "feeTier": 0.05,
+   "tvl": 430596,
+   "stable": false,
+   "oneStable": true,
+   "tokens": [
+    "USDC",
+    "WETH"
+   ],
+   "days": 365,
+   "bands": {
+    "10": {
+     "vsHold": -24.91,
+     "feesUSD": 437,
+     "inRangePct": 8,
+     "share": 0.015074270640930133
+    },
+    "25": {
+     "vsHold": -20.15,
+     "feesUSD": 505,
+     "inRangePct": 18,
+     "share": 0.007267427432222573
+    },
+    "50": {
+     "vsHold": -15.96,
+     "feesUSD": 400,
+     "inRangePct": 26,
+     "share": 0.004210313058618657
     }
    },
    "quarters": [
@@ -1847,7 +1232,7 @@
    "version": "v3",
    "pair": "USDC/WETH",
    "feeTier": 0.05,
-   "tvl": 103501556,
+   "tvl": 103151742,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -1857,66 +1242,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -23.81,
-     "feesUSD": 447,
+     "vsHold": -25.3,
+     "feesUSD": 409,
      "inRangePct": 8,
-     "share": 0.0006491337597760337
+     "share": 0.0006642879975953402
     },
     "25": {
-     "vsHold": -18.99,
-     "feesUSD": 519,
-     "inRangePct": 19,
-     "share": 0.00029914687531379586
+     "vsHold": -20.21,
+     "feesUSD": 501,
+     "inRangePct": 18,
+     "share": 0.0003021117214788085
     },
     "50": {
-     "vsHold": -14.98,
-     "feesUSD": 403,
+     "vsHold": -16.08,
+     "feesUSD": 392,
      "inRangePct": 26,
-     "share": 0.00016510494714050395
-    }
-   },
-   "quarters": [
-    false,
-    false,
-    true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "polygon",
-   "address": "0xa4d8c89f0c20efbe54cba9e7e7a7e509056228d9",
-   "dex": "uniswap_v3_polygon_pos",
-   "version": "v3",
-   "pair": "USDC/WETH",
-   "feeTier": 0.05,
-   "tvl": 445207,
-   "stable": false,
-   "oneStable": true,
-   "tokens": [
-    "USDC",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -23.54,
-     "feesUSD": 469,
-     "inRangePct": 8,
-     "share": 0.015180523386164891
-    },
-    "25": {
-     "vsHold": -19,
-     "feesUSD": 521,
-     "inRangePct": 19,
-     "share": 0.007275714428483488
-    },
-    "50": {
-     "vsHold": -14.87,
-     "feesUSD": 412,
-     "inRangePct": 26,
-     "share": 0.004207328615736545
+     "share": 0.00016625415736207813
     }
    },
    "quarters": [
@@ -1935,7 +1276,7 @@
    "version": "v3",
    "pair": "WETH/USDT",
    "feeTier": 0.3,
-   "tvl": 115355238,
+   "tvl": 114248240,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -1945,22 +1286,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -23.93,
-     "feesUSD": 600,
-     "inRangePct": 10,
-     "share": 0.00011536918196722509
+     "vsHold": -26.04,
+     "feesUSD": 516,
+     "inRangePct": 9,
+     "share": 0.000114211887274126
     },
     "25": {
-     "vsHold": -20.61,
-     "feesUSD": 694,
+     "vsHold": -21.94,
+     "feesUSD": 676,
      "inRangePct": 20,
-     "share": 0.000057587674077390635
+     "share": 0.00005736232705030359
     },
     "50": {
-     "vsHold": -11.12,
-     "feesUSD": 826,
+     "vsHold": -12.57,
+     "feesUSD": 814,
      "inRangePct": 45,
-     "share": 0.000034808437335867434
+     "share": 0.00003477308062187467
     }
    },
    "quarters": [
@@ -1979,7 +1320,7 @@
    "version": "v3",
    "pair": "WETH/USDC",
    "feeTier": 0.3,
-   "tvl": 109156204,
+   "tvl": 108783662,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -1989,22 +1330,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -24.75,
-     "feesUSD": 532,
-     "inRangePct": 10,
-     "share": 0.0007472614087562747
+     "vsHold": -26.9,
+     "feesUSD": 450,
+     "inRangePct": 9,
+     "share": 0.000752504407630493
     },
     "25": {
-     "vsHold": -21.6,
-     "feesUSD": 611,
+     "vsHold": -23,
+     "feesUSD": 593,
      "inRangePct": 20,
-     "share": 0.0004129024784541378
+     "share": 0.000412902767913017
     },
     "50": {
-     "vsHold": -11.91,
-     "feesUSD": 756,
+     "vsHold": -13.43,
+     "feesUSD": 744,
      "inRangePct": 45,
-     "share": 0.00021173420840875267
+     "share": 0.00021165909611442976
     }
    },
    "quarters": [
@@ -2023,7 +1364,7 @@
    "version": "v3",
    "pair": "WETH/USDT",
    "feeTier": 0.01,
-   "tvl": 4012792,
+   "tvl": 3968590,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -2033,22 +1374,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -21.64,
-     "feesUSD": 771,
+     "vsHold": -23.19,
+     "feesUSD": 728,
      "inRangePct": 10,
-     "share": 0.0014513293524764635
+     "share": 0.0014366196116352282
     },
     "25": {
-     "vsHold": -21.67,
-     "feesUSD": 606,
+     "vsHold": -23.03,
+     "feesUSD": 586,
      "inRangePct": 20,
-     "share": 0.000665453548916064
+     "share": 0.0006634633282225582
     },
     "50": {
-     "vsHold": -12.54,
-     "feesUSD": 705,
+     "vsHold": -13.99,
+     "feesUSD": 693,
      "inRangePct": 45,
-     "share": 0.0005143191379479482
+     "share": 0.0005057109884818824
     }
    },
    "quarters": [
@@ -2067,7 +1408,7 @@
    "version": "v3",
    "pair": "WETH/USDT",
    "feeTier": 0.05,
-   "tvl": 542867,
+   "tvl": 561707,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -2077,22 +1418,66 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -24.35,
-     "feesUSD": 562,
+     "vsHold": -25.95,
+     "feesUSD": 516,
      "inRangePct": 10,
-     "share": 0.01769389989936755
+     "share": 0.017631567432502295
     },
     "25": {
-     "vsHold": -21.82,
-     "feesUSD": 593,
+     "vsHold": -23.21,
+     "feesUSD": 570,
      "inRangePct": 20,
-     "share": 0.012273489138604076
+     "share": 0.012203098690413632
     },
     "50": {
-     "vsHold": -12.66,
-     "feesUSD": 694,
+     "vsHold": -14.07,
+     "feesUSD": 684,
      "inRangePct": 45,
-     "share": 0.012812655870757672
+     "share": 0.012864366241092932
+    }
+   },
+   "quarters": [
+    false,
+    false,
+    true,
+    true
+   ],
+   "quartersWon": 2,
+   "quartersRated": 4
+  },
+  {
+   "chain": "ethereum",
+   "address": "0xc3db44adc1fcdfd5671f555236eae49f4a8eea18",
+   "dex": "uniswap_v3",
+   "version": "v3",
+   "pair": "ENA/WETH",
+   "feeTier": 0.3,
+   "tvl": 794677,
+   "stable": false,
+   "oneStable": false,
+   "tokens": [
+    "ENA",
+    "WETH"
+   ],
+   "days": 365,
+   "bands": {
+    "10": {
+     "vsHold": -26.71,
+     "feesUSD": 426,
+     "inRangePct": 8,
+     "share": 0.0049631738902625126
+    },
+    "25": {
+     "vsHold": -23.44,
+     "feesUSD": 492,
+     "inRangePct": 16,
+     "share": 0.0025960483311521262
+    },
+    "50": {
+     "vsHold": -15.88,
+     "feesUSD": 538,
+     "inRangePct": 34,
+     "share": 0.0021828597579878046
     }
    },
    "quarters": [
@@ -2111,7 +1496,7 @@
    "version": "v3",
    "pair": "WETH/USDC",
    "feeTier": 0.05,
-   "tvl": 8131886,
+   "tvl": 8031088,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -2121,22 +1506,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -25.18,
-     "feesUSD": 488,
+     "vsHold": -26.96,
+     "feesUSD": 446,
      "inRangePct": 10,
-     "share": 0.0003160172142527633
+     "share": 0.00031206709999966487
     },
     "25": {
-     "vsHold": -21.98,
-     "feesUSD": 569,
+     "vsHold": -23.51,
+     "feesUSD": 553,
      "inRangePct": 20,
-     "share": 0.00017082928752457349
+     "share": 0.00017120890009408122
     },
     "50": {
-     "vsHold": -12.56,
-     "feesUSD": 689,
+     "vsHold": -14.25,
+     "feesUSD": 677,
      "inRangePct": 45,
-     "share": 0.00013147969410379865
+     "share": 0.00013158325331615367
     }
    },
    "quarters": [
@@ -2155,7 +1540,7 @@
    "version": "v3",
    "pair": "WETH/USDT",
    "feeTier": 0.05,
-   "tvl": 8274249,
+   "tvl": 8215314,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -2165,22 +1550,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -25.3,
-     "feesUSD": 490,
+     "vsHold": -26.79,
+     "feesUSD": 454,
      "inRangePct": 10,
-     "share": 0.0010436196647367838
+     "share": 0.001056454278857255
     },
     "25": {
-     "vsHold": -22.61,
-     "feesUSD": 533,
+     "vsHold": -23.93,
+     "feesUSD": 515,
      "inRangePct": 20,
-     "share": 0.000894696464378271
+     "share": 0.0009036106599738339
     },
     "50": {
-     "vsHold": -12.92,
-     "feesUSD": 675,
+     "vsHold": -14.34,
+     "feesUSD": 664,
      "inRangePct": 45,
-     "share": 0.0004130975040641204
+     "share": 0.00041522161620703507
     }
    },
    "quarters": [
@@ -2199,7 +1584,7 @@
    "version": "v3",
    "pair": "WETH/USDC",
    "feeTier": 0.01,
-   "tvl": 369546,
+   "tvl": 355808,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -2209,160 +1594,28 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -25.39,
-     "feesUSD": 470,
+     "vsHold": -26.96,
+     "feesUSD": 447,
      "inRangePct": 10,
-     "share": 0.02541925241063529
+     "share": 0.02531625123285037
     },
     "25": {
-     "vsHold": -22.79,
-     "feesUSD": 504,
+     "vsHold": -24.4,
+     "feesUSD": 485,
      "inRangePct": 20,
-     "share": 0.00849618099923759
+     "share": 0.00849120647846526
     },
     "50": {
-     "vsHold": -13.93,
-     "feesUSD": 575,
+     "vsHold": -15.66,
+     "feesUSD": 566,
      "inRangePct": 45,
-     "share": 0.004331028975545949
+     "share": 0.004290661018471555
     }
    },
    "quarters": [
     false,
     false,
     true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "polygon",
-   "address": "0x79e4240e33c121402dfc9009de266356c91f241d",
-   "dex": "uniswap_v3_polygon_pos",
-   "version": "v3",
-   "pair": "USDC/LINK",
-   "feeTier": 0.3,
-   "tvl": 305399,
-   "stable": false,
-   "oneStable": true,
-   "tokens": [
-    "USDC",
-    "LINK"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -31.18,
-     "feesUSD": 294,
-     "inRangePct": 2,
-     "share": 0.027357210276405204
-    },
-    "25": {
-     "vsHold": -25.16,
-     "feesUSD": 449,
-     "inRangePct": 12,
-     "share": 0.01577871726888074
-    },
-    "50": {
-     "vsHold": -20.85,
-     "feesUSD": 351,
-     "inRangePct": 16,
-     "share": 0.009425809110241075
-    }
-   },
-   "quarters": [
-    false,
-    false,
-    true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "polygon",
-   "address": "0x94ab9e4553ffb839431e37cc79ba8905f45bfbea",
-   "dex": "uniswap_v3_polygon_pos",
-   "version": "v3",
-   "pair": "USDC/LINK",
-   "feeTier": 0.3,
-   "tvl": 259703,
-   "stable": false,
-   "oneStable": true,
-   "tokens": [
-    "USDC",
-    "LINK"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -31.33,
-     "feesUSD": 284,
-     "inRangePct": 2,
-     "share": 0.02459293452904645
-    },
-    "25": {
-     "vsHold": -25.26,
-     "feesUSD": 443,
-     "inRangePct": 12,
-     "share": 0.010655438123145273
-    },
-    "50": {
-     "vsHold": -20.86,
-     "feesUSD": 350,
-     "inRangePct": 16,
-     "share": 0.006537347478206705
-    }
-   },
-   "quarters": [
-    false,
-    false,
-    true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
-   "chain": "ethereum",
-   "address": "0x2325e3f261cadb1c30cebf66c9f95f6fb016c0d4",
-   "dex": "uniswap_v2",
-   "version": "v2",
-   "pair": "WETH/puppies",
-   "feeTier": 0.3,
-   "tvl": 976820,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "WETH",
-    "PUPPIES"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -27.78,
-     "feesUSD": 2201,
-     "inRangePct": 100,
-     "share": 0.011585976461911644
-    },
-    "25": {
-     "vsHold": -27.78,
-     "feesUSD": 2201,
-     "inRangePct": 100,
-     "share": 0.011585976461911644
-    },
-    "50": {
-     "vsHold": -27.78,
-     "feesUSD": 2201,
-     "inRangePct": 100,
-     "share": 0.011585976461911644
-    }
-   },
-   "quarters": [
-    false,
-    true,
-    false,
     true
    ],
    "quartersWon": 2,
@@ -2375,7 +1628,7 @@
    "version": "v3",
    "pair": "WMATIC/USDT",
    "feeTier": 0.05,
-   "tvl": 1327362,
+   "tvl": 1333667,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -2385,22 +1638,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -30.45,
-     "feesUSD": 692,
-     "inRangePct": 10,
-     "share": 0.01211268959309736
+     "vsHold": -32.68,
+     "feesUSD": 637,
+     "inRangePct": 9,
+     "share": 0.011408489352873795
     },
     "25": {
-     "vsHold": -28.73,
-     "feesUSD": 714,
-     "inRangePct": 18,
-     "share": 0.008150846926467658
+     "vsHold": -31.26,
+     "feesUSD": 644,
+     "inRangePct": 17,
+     "share": 0.00748862430427326
     },
     "50": {
-     "vsHold": -18.84,
-     "feesUSD": 999,
-     "inRangePct": 34,
-     "share": 0.005040098094247671
+     "vsHold": -21.02,
+     "feesUSD": 973,
+     "inRangePct": 33,
+     "share": 0.005081785668361935
     }
    },
    "quarters": [
@@ -2413,57 +1666,13 @@
    "quartersRated": 4
   },
   {
-   "chain": "ethereum",
-   "address": "0xc3db44adc1fcdfd5671f555236eae49f4a8eea18",
-   "dex": "uniswap_v3",
-   "version": "v3",
-   "pair": "ENA/WETH",
-   "feeTier": 0.3,
-   "tvl": 782781,
-   "stable": false,
-   "oneStable": false,
-   "tokens": [
-    "ENA",
-    "WETH"
-   ],
-   "days": 365,
-   "bands": {
-    "10": {
-     "vsHold": -30.6,
-     "feesUSD": 456,
-     "inRangePct": 8,
-     "share": 0.004619646178645668
-    },
-    "25": {
-     "vsHold": -30.81,
-     "feesUSD": 407,
-     "inRangePct": 15,
-     "share": 0.002335205559310012
-    },
-    "50": {
-     "vsHold": -22.57,
-     "feesUSD": 511,
-     "inRangePct": 32,
-     "share": 0.0020939112375020336
-    }
-   },
-   "quarters": [
-    false,
-    false,
-    true,
-    true
-   ],
-   "quartersWon": 2,
-   "quartersRated": 4
-  },
-  {
    "chain": "avalanche",
    "address": "0xfae3f424a0a47706811521e3ee268f00cfb5c45e",
    "dex": "uniswap-v3-avalanche",
    "version": "v3",
    "pair": "WAVAX/USDC",
    "feeTier": 0.05,
-   "tvl": 1183791,
+   "tvl": 1174585,
    "stable": false,
    "oneStable": true,
    "tokens": [
@@ -2473,22 +1682,22 @@
    "days": 365,
    "bands": {
     "10": {
-     "vsHold": -48.94,
-     "feesUSD": 363,
+     "vsHold": -50.84,
+     "feesUSD": 320,
      "inRangePct": 5,
-     "share": 0.006706636890147301
+     "share": 0.006428834910291138
     },
     "25": {
-     "vsHold": -43.79,
-     "feesUSD": 673,
-     "inRangePct": 15,
-     "share": 0.0037357042211324026
+     "vsHold": -44.93,
+     "feesUSD": 683,
+     "inRangePct": 16,
+     "share": 0.00386813291082575
     },
     "50": {
-     "vsHold": -39.66,
-     "feesUSD": 698,
+     "vsHold": -41.19,
+     "feesUSD": 694,
      "inRangePct": 35,
-     "share": 0.002713576679990846
+     "share": 0.0027624095054338675
     }
    },
    "quarters": [
