@@ -29,13 +29,13 @@ import path from 'path';
 
 const SITE = process.env.SITE_ORIGIN || 'https://lpvshodl.com';
 const ROOT = process.cwd();
-const PAGE = path.join(ROOT, 'LPvsHODL', 'index.html');
+const PAGE = path.join(ROOT, 'LPvsHODL', 'backtest', 'index.html');
 const OUT = path.join(ROOT, 'LPvsHODL', 'best-pools.json');
 const SITE_DIR = path.join(ROOT, 'LPvsHODL');
 
 /* Pages that exist regardless of what the run finds. Listed here because the
    sitemap is rewritten wholesale each night and would otherwise drop them. */
-const CORE_PAGES = ['/', '/best-pools/', '/minimum-size/', '/impermanent-loss/',
+const CORE_PAGES = ['/', '/backtest/', '/minimum-size/', '/impermanent-loss/',
                     '/good-apr/', '/uniswap-v2-vs-v3/', '/choosing-a-price-range/'];
 
 const DEPOSIT = 10000;          /* every pool tested at the same size */
@@ -147,7 +147,7 @@ const STABLES = /^(USDC|USDC\.E|USDBC|USDT|USDT0|DAI|TUSD|USDP|PYUSD|FDUSD|LUSD|
 function loadMaths() {
   const html = fs.readFileSync(PAGE, 'utf8');
   const m = html.match(/var FEEQ = \(function\(\)\{[\s\S]*?\n\}\)\(\);/);
-  if (!m) throw new Error('could not find FEEQ in index.html — did the page change shape?');
+  if (!m) throw new Error('could not find FEEQ in backtest/index.html — did the page change shape?');
   const box = {};
   new Function('box', m[0].replace('var FEEQ = ', 'box.FEEQ = '))(box);
   if (!box.FEEQ || !box.FEEQ.ok) throw new Error('FEEQ loaded but is not usable here');
@@ -480,7 +480,7 @@ function poolPage(p, generated, windowInfo) {
     : `Over the last ${windowInfo.days} days it lost to simply holding the two tokens by ${Math.abs(v).toFixed(1)}%.`;
   const desc = `${verdict} Measured from the pool's own fee record, not an advertised rate.`;
   const url = `https://lpvshodl.com/pool/${p.chain}/${p.address}/`;
-  const backtest = `/?a=${p.address}&c=${p.chain}&lo=25&up=25&q=${windowInfo.deposit}`;
+  const backtest = `/backtest/?a=${p.address}&c=${p.chain}&lo=25&up=25&q=${windowInfo.deposit}`;
 
   const bandRows = (p.version === 'v2')
     ? `<tr><td>Full range</td><td class="${won ? 'up' : 'down'}">${v > 0 ? '+' : ''}${v.toFixed(1)}%</td>
@@ -586,11 +586,11 @@ Fee tier ${p.feeTier}%, on ${esc(p.chain)}.</p>
 ${why}
 
 <p><a class="cta primary" href="${backtest}">Run this pool with your own numbers</a>
-<a class="cta" href="/best-pools/">See how every pool compared</a></p>
+<a class="cta" href="/">See how every pool compared</a></p>
 
 <p class="foot">These are past results for one fixed strategy, not a recommendation &mdash;
 a pool that beat holding last year can lose the next. Worked out ${esc(generated.slice(0, 10))}.
-<a href="/">Back to the backtester</a>.</p>
+<a href="/backtest/">Back to the backtester</a>.</p>
 </div></body></html>
 `;
 }
